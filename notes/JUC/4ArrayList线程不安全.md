@@ -160,7 +160,7 @@ final void checkForComodification() {
 
 ### 解决方案
 
-#### 方案一：Vector
+#### 方案一：Vector——加锁
 
 第一种方法，就是不用ArrayList这种不安全的List实现类，而采用Vector，线程安全的
 
@@ -175,7 +175,7 @@ public synchronized boolean add(E e) {
 }
 ```
 
-这样就每次只能够一个线程进行操作，所以不会出现线程不安全的问题，但是因为加锁了，导致并发性基于下降
+这样就每次只能够一个线程进行操作，所以不会出现线程不安全的问题，但是因为加锁了，导致并发性急剧下降。
 
 #### 方案二：Collections.synchronized()
 
@@ -183,19 +183,36 @@ public synchronized boolean add(E e) {
 List<String> list = Collections.synchronizedList(new ArrayList<>());
 ```
 
-采用Collections集合工具类，在ArrayList外面包装一层 同步 机制
+采用Collections集合工具类，在ArrayList外面包装一层 同步 机制。
+
+```java
+public static <T> List<T> synchronizedList(List<T> list) {
+    return (list instanceof RandomAccess ?
+            new SynchronizedRandomAccessList<>(list) :
+            new SynchronizedList<>(list));
+}
+```
 
 #### 方案三：采用JUC里面的方法
 
-CopyOnWriteArrayList：写时复制，主要是一种**读写分离**的思想
+```java
+public class CopyOnWriteArrayList<E> implements List<E>, RandomAccess, Cloneable, java.io.Serializable
+```
 
-写时复制，CopyOnWrite容器即写时复制的容器，往一个容器中添加元素的时候，不直接往当前容器Object[]添加，而是先将Object[]进行copy，复制出一个新的容器object[] newElements，然后新的容器Object[] newElements里添加原始，添加元素完后，在将原容器的引用指向新的容器 setArray(newElements)；
+写时复制
 
-这样做的好处是可以对copyOnWrite容器进行并发的读 ，而不需要加锁，因为当前容器不需要添加任何元素。所以CopyOnWrite容器也是一种读写分离的思想，读和写不同的容器
+- 主要是一种**读写分离**的思想
 
-就是写的时候，把ArrayList扩容一个出来，然后把值填写上去，在通知其他的线程，ArrayList的引用指向扩容后的
+- 写时复制，CopyOnWrite容器即写时复制的容器，往一个容器中添加元素的时候，不直接往当前容器Object[]添加，而是先将Object[]进行copy，复制出一个新的容器object[] newElements，然后新的容器Object[] newElements里添加原始，添加元素完后，在将原容器的引用指向新的容器 setArray(newElements)；
 
-查看底层add方法源码
+
+- 优点：对copyOnWrite容器进行并发的读 ，不需要加锁，因为当前容器不需要添加任何元素。所以CopyOnWrite容器也是一种读写分离的思想，读和写不同的容器。
+
+
+- 总结：写的时候，把ArrayList扩容一个出来，然后把值填写上去，在通知其他的线程，ArrayList的引用指向扩容后的
+
+
+底层add方法源码
 
 ```java
     public boolean add(E e) {
@@ -218,11 +235,17 @@ CopyOnWriteArrayList：写时复制，主要是一种**读写分离**的思想
     }
 ```
 
+```java
+private transient volatile Object[] array;
+// Gets the array.  Non-private so as to also be accessible from CopyOnWriteArraySet class.
+final Object[] getArray() {
+    return array;
+}
+```
 
+### HashSet线程不安全
 
-## HashSet线程不安全
-
-### CopyOnWriteArraySet
+#### CopyOnWriteArraySet
 
 - 底层还是使用CopyOnWriteArrayList进行实例化
 
@@ -237,7 +260,7 @@ public class CopyOnWriteArraySet<E> extends AbstractSet<E> implements java.io.Se
     ...
 ```
 
-### HashSet底层结构
+#### HashSet底层结构
 
 - HashSet的底层结构是HashMap
 
@@ -260,7 +283,7 @@ public HashSet() {
 
 我们能发现但我们调用add的时候，存储一个值进入map中，只是作为key进行存储，而value存储的是一个Object类型的常量，也就是说HashSet只关心key，而不关心value.
 
-## HashMap线程不安全
+### HashMap线程不安全
 
 同理HashMap在多线程环境下，也是不安全的
 
@@ -276,11 +299,11 @@ public HashSet() {
     }
 ```
 
-### 解决方法
+#### 解决方法
 
 1、使用Collections.synchronizedMap(new HashMap<>());
 
-2、使用 ConcurrentHashMap
+2、使用 JUC包下的ConcurrentHashMap
 
 ```java
 Map<String, String> map = new ConcurrentHashMap<>();

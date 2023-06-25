@@ -12,22 +12,75 @@
 
 ### 如何创建
 
-并发包中ReentrantLock的创建可以指定析构函数的boolean类型来得到公平锁或者非公平锁，默认是非公平锁
-
 ```java
 // 创建一个可重入锁，true 表示公平锁，false 表示非公平锁。默认非公平锁
 Lock lock = new ReentrantLock(true);
+
+public ReentrantLock(boolean fair) {
+    sync = fair ? new FairSync() : new NonfairSync();
+}
+```
+
+#### 源码
+
+```java
+// Sync object for fair locks
+static final class FairSync extends Sync {
+    private static final long serialVersionUID = -3000897897090466540L;
+    final void lock() {
+        acquire(1);
+    }
+    // Fair version of tryAcquire.  Don't grant access unless recursive call or no waiters or is first.
+    protected final boolean tryAcquire(int acquires) {
+        final Thread current = Thread.currentThread();
+        int c = getState();
+        if (c == 0) {
+            if (!hasQueuedPredecessors() &&
+                compareAndSetState(0, acquires)) {
+                setExclusiveOwnerThread(current);
+                return true;
+            }
+        }
+        else if (current == getExclusiveOwnerThread()) {
+            int nextc = c + acquires;
+            if (nextc < 0)
+                throw new Error("Maximum lock count exceeded");
+            setState(nextc);
+            return true;
+        }
+        return false;
+    }
+}
+```
+
+```java
+// Sync object for non-fair locks
+static final class NonfairSync extends Sync {
+    private static final long serialVersionUID = 7316153563782823691L;
+    // Performs lock.  Try immediate barge, backing up to normal acquire on failure.
+    final void lock() {
+        if (compareAndSetState(0, 1))
+            setExclusiveOwnerThread(Thread.currentThread());
+        else
+            acquire(1);
+    }
+    protected final boolean tryAcquire(int acquires) {
+        return nonfairTryAcquire(acquires);
+    }
+}
 ```
 
 ### 两者区别
 
-**公平锁**：就是很公平，在并发环境中，每个线程在获取锁时会先**查看**此锁维护的等待队列，如果为空，或者当前线程是等待队列中的第一个，就占用锁，否者就会加入到等待队列中，以后按照FIFO的规则从队列中取到自己。
+**公平锁**：就是很公平，在并发环境中，每个线程在获取锁时会先**查看**此锁维护的**等待队列**，如果为空，或者当前线程是等待队列中的第一个，就占用锁，否者就会加入到等待队列中，以后按照FIFO的规则从队列中取到自己。
 
 **非公平锁：** 非公平锁比较粗鲁，上来就**直接**尝试占有锁，如果尝试失败，就再采用类似公平锁那种方式。
 
 ### 题外话
 
-Java ReenttrantLock通过构造函数指定该锁是否公平，默认是非公平锁，因为非公平锁的优点在于吞吐量比公平锁大，对于synchronized而言，也是一种非公平锁。
+Java ReenttrantLock通过构造函数指定该锁是否公平，默认是非公平锁，因为非公平锁的优点在于吞吐量比公平锁大。
+
+synchronized也是一种非公平锁。
 
 
 
@@ -39,9 +92,9 @@ Java ReenttrantLock通过构造函数指定该锁是否公平，默认是非公�
 
 指的是同一线程外层函数获得锁之后，内层递归函数仍然能获取到该锁的代码，在同一线程在外层方法获取锁的时候，在进入内层方法会自动获取锁。
 
-也就是说：线程可以进入任何一个它已经拥有的锁所同步的代码块
+**总结**：线程可以进入任何一个它已经拥有的锁所同步的代码块。
 
-ReentrantLock / Synchronized 就是一个典型的可重入锁
+ReentrantLock / Synchronized 就是一个典型的可重入锁。
 
 ### 代码
 
@@ -56,7 +109,7 @@ public synchronized void method2() {}
 
 ### 作用
 
-可重入锁的最大作用就是避免死锁
+可重入锁的最大作用就是**避免死锁**。
 
 ### 可重入锁验证
 
@@ -75,20 +128,12 @@ class Phone {
 public class ReenterLockDemo {
     public static void main(String[] args) {
         Phone phone = new Phone();
-        // 两个线程操作资源列
+        // 两个线程操作资源类
         new Thread(() -> {
-            try {
-                phone.sendSMS();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            try {phone.sendSMS();} catch (Exception e) {e.printStackTrace();}
         }, "t1").start();
         new Thread(() -> {
-            try {
-                phone.sendSMS();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            try {phone.sendSMS();} catch (Exception e) {e.printStackTrace();}
         }, "t2").start();
     }
 }
@@ -110,7 +155,7 @@ t2	 invoked sendEmail()    t2在进入内层方法会自动获取锁
 ```java
 class Phone implements Runnable{
     Lock lock = new ReentrantLock();
-    // set进去的时候，就加锁，调用set方法的时候，能否访问另外一个加锁的set方法
+    // get进去的时候，就加锁，调用get方法的时候，能否访问另外一个加锁的set方法
     public void getLock() {
         lock.lock();
         try {
@@ -174,7 +219,7 @@ t4	 set Lock
     }
 ```
 
-最后得到的结果也是一样的，因为里面不管有几把锁，其它他们都是同一把锁，也就是说用同一个钥匙都能够打开
+最后得到的结果也是一样的，因为里面不管有几把锁，其它他们都是同一把锁，也就是说用同一个钥匙都能够打开.
 
 **当我们在getLock方法加两把锁，但是只解一把锁会出现什么情况呢？**
 
@@ -238,21 +283,62 @@ java.lang.IllegalMonitorStateException
 	at java.lang.Thread.run(Thread.java:745)
 ```
 
+```java
+public void unlock() {
+    sync.release(1);
+}
+```
+
+```java
+public final boolean release(int arg) {
+    if (tryRelease(arg)) {
+        Node h = head;
+        if (h != null && h.waitStatus != 0)
+            unparkSuccessor(h);
+        return true;
+    }
+    return false;
+}
+```
+
+```java
+protected final boolean tryRelease(int releases) {
+    int c = getState() - releases;
+    if (Thread.currentThread() != getExclusiveOwnerThread())
+        throw new IllegalMonitorStateException();
+    boolean free = false;
+    if (c == 0) {
+        free = true;
+        setExclusiveOwnerThread(null);
+    }
+    setState(c);
+    return free;
+}
+```
+
 
 
 ## Java锁之自旋锁
 
-自旋锁：spinlock，是指尝试获取锁的线程不会立即阻塞，而是采用循环的方式去尝试获取锁，这样的好处是减少线程上下文切换的消耗，缺点是循环会消耗CPU
+自旋锁：spinlock，是指尝试获取锁的线程**不会立即阻塞**，而是采用**循环**的方式去**尝试获取锁**，这样的好处是减少线程上下文切换的消耗，缺点是循环会消耗CPU。
 
-原来提到的比较并交换，底层使用的就是自旋，自旋就是多次尝试，多次访问，不会阻塞的状态就是自旋。
+原来提到的比较并交换，底层使用的就是自旋，自旋就是多次尝试，多次访问，不会阻塞的状态就是**自旋**。
 
-![image-20200315154143781](../../pics/juc/lock/image-20200315154143781.png)
+```java
+public final int getAndAddInt(Object var1, long var2, int var4) {
+    int var5;
+    do {
+        var5 = this.getIntVolatile(var1, var2);
+    } while(!this.compareAndSwapInt(var1, var2, var5, var5 + var4));
+    return var5;
+}
+```
 
 ### 优缺点
 
-优点：循环比较获取直到成功为止，没有类似于wait的阻塞
+优点：循环比较获取直到成功为止，没有类似于wait的阻塞。
 
-缺点：当不断自旋的线程越来越多的时候，会因为执行while循环不断的消耗CPU资源
+缺点：当不断自旋的线程越来越多的时候，会因为执行while循环不断的消耗CPU资源。
 
 ### 手写自旋锁
 
@@ -261,7 +347,7 @@ java.lang.IllegalMonitorStateException
 ```java
 // 手写一个自旋锁：循环比较获取直到成功为止，没有类似于wait的阻塞
 public class SpinLockDemo {
-    // 现在的泛型装的是Thread，原子引用线程
+    // 现在的泛型装的是Thread，原子引用线程。当前初始值为null
     AtomicReference<Thread>  atomicReference = new AtomicReference<>();
     public void myLock() {
         // 获取当前进来的线程
@@ -329,19 +415,21 @@ t2 invoked myUnlock()
 
 写的时候只能一个人写，但是读的时候，可以多个人同时读。
 
+读锁的共享锁可保证并发读是非常高效的，读写、写读、写写是互斥的。
+
 ### 为什么会有写锁和读锁？
 
-原来我们使用ReentrantLock创建锁的时候，是独占锁，也就是说一次只能一个线程访问，但是有一个读写分离场景，读的时候想同时进行，因此原来独占锁的并发性就没这么好了，因为读锁并不会造成数据不一致的问题，因此可以多个人共享读。
+原来我们使用ReentrantLock创建锁的时候，是独占锁，也就是说一次只能一个线程访问，但是有一个**读写分离场景**，读的时候想同时进行，因此原来独占锁的并发性就没这么好了，因为读锁并不会造成数据不一致的问题，因此可以多个人共享读。
 
-```
-多个线程 同时读一个资源类没有任何问题，所以为了满足并发量，读取共享资源应该可以同时进行，但是如果一个线程想去写共享资源，就不应该再有其它线程可以对该资源进行读或写
-```
+多个线程同时读一个资源类没有任何问题，所以为了满足并发量，读取共享资源应该可以同时进行，但是如果一个线程想去写共享资源，就不应该再有其它线程可以对该资源进行读或写。
 
 读-读：能共存
 
 读-写：不能共存
 
 写-写：不能共存
+
+写操作需要满足：原子 + 独占，整个过程必须是一个完整的统一体，中间不许被分割打断。如案例代码中的正在写入和写入完成。
 
 ### 代码实现
 
@@ -350,7 +438,6 @@ t2 invoked myUnlock()
 ```java
 class MyCache {
     private volatile Map<String, Object> map = new HashMap<>();
-    // private Lock lock = null;
     public void put(String key, Object value) {
         System.out.println(Thread.currentThread().getName() + "\t 正在写入：" + key);
         try {TimeUnit.MILLISECONDS.sleep(300);} catch (InterruptedException e) {e.printStackTrace();}
@@ -409,101 +496,38 @@ public class ReadWriteLockDemo {
 
 我们可以看到，在写入的时候，写操作都被其它线程打断了，这就造成了，还没写完，其它线程又开始写，这样就造成数据不一致。
 
-## 解决方法
 
-上面的代码是没有加锁的，这样就会造成线程在进行写入操作的时候，被其它线程频繁打断，从而不具备原子性，这个时候，我们就需要用到读写锁来解决了
 
-```
-/**
-* 创建一个读写锁
-* 它是一个读写融为一体的锁，在使用的时候，需要转换
-*/
-private ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
-```
+### 解决方法
 
-当我们在进行写操作的时候，就需要转换成写锁
+上面的代码是没有加锁的，这样就会造成线程在进行写入操作的时候，被其它线程频繁打断，从而不具备原子性，这个时候，我们就需要用到读写锁来解决了。
 
-```
-// 创建一个写锁
-rwLock.writeLock().lock();
-
-// 写锁 释放
-rwLock.writeLock().unlock();
-```
-
-当们在进行读操作的时候，在转换成读锁
-
-```
-// 创建一个读锁
-rwLock.readLock().lock();
-
-// 读锁 释放
-rwLock.readLock().unlock();
-```
-
-这里的读锁和写锁的区别在于，写锁一次只能一个线程进入，执行写操作，而读锁是多个线程能够同时进入，进行读取的操作
+这里的读锁和写锁的区别在于，写锁一次只能一个线程进入，执行写操作，而读锁是多个线程能够同时进入，进行读取的操作。
 
 完整代码：
 
-```
+```java
 /**
  * 读写锁
  * 多个线程 同时读一个资源类没有任何问题，所以为了满足并发量，读取共享资源应该可以同时进行
  * 但是，如果一个线程想去写共享资源，就不应该再有其它线程可以对该资源进行读或写
- *
- * @author: 陌溪
- * @create: 2020-03-15-16:59
  */
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-/**
- * 资源类
- */
+// 资源类
 class MyCache {
-
-    /**
-     * 缓存中的东西，必须保持可见性，因此使用volatile修饰
-     */
+    // 缓存中的东西，必须保持可见性，因此使用volatile修饰
     private volatile Map<String, Object> map = new HashMap<>();
-
-    /**
-     * 创建一个读写锁
-     * 它是一个读写融为一体的锁，在使用的时候，需要转换
-     */
+    // 创建一个读写锁：它是一个读写融为一体的锁，在使用的时候，需要转换
     private ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
-
-    /**
-     * 定义写操作
-     * 满足：原子 + 独占
-     * @param key
-     * @param value
-     */
+    // 定义写操作。满足：原子 + 独占
     public void put(String key, Object value) {
-
-        // 创建一个写锁
+        // 进行写操作的时候，就需要转换成写锁
         rwLock.writeLock().lock();
-
         try {
-
             System.out.println(Thread.currentThread().getName() + "\t 正在写入：" + key);
-
-            try {
-                // 模拟网络拥堵，延迟0.3秒
-                TimeUnit.MILLISECONDS.sleep(300);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
+            // 模拟网络拥堵，延迟0.3秒
+            try {TimeUnit.MILLISECONDS.sleep(300);} catch (InterruptedException e) {e.printStackTrace();}
             map.put(key, value);
-
             System.out.println(Thread.currentThread().getName() + "\t 写入完成");
-
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -511,30 +535,16 @@ class MyCache {
             rwLock.writeLock().unlock();
         }
     }
-
-    /**
-     * 获取
-     * @param key
-     */
+    // 读取
     public void get(String key) {
-
-        // 读锁
+        // 进行读操作的时候，再转换成读锁
         rwLock.readLock().lock();
         try {
-
             System.out.println(Thread.currentThread().getName() + "\t 正在读取:");
-
-            try {
-                // 模拟网络拥堵，延迟0.3秒
-                TimeUnit.MILLISECONDS.sleep(300);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
+            // 模拟网络拥堵，延迟0.3秒
+            try {TimeUnit.MILLISECONDS.sleep(300);} catch (InterruptedException e) {e.printStackTrace();}
             Object value = map.get(key);
-
             System.out.println(Thread.currentThread().getName() + "\t 读取完成：" + value);
-
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -542,22 +552,14 @@ class MyCache {
             rwLock.readLock().unlock();
         }
     }
-
-    /**
-     * 清空缓存
-     */
+    // 清空缓存
     public void clean() {
         map.clear();
     }
-
-
 }
 public class ReadWriteLockDemo {
-
     public static void main(String[] args) {
-
         MyCache myCache = new MyCache();
-
         // 线程操作资源类，5个线程写
         for (int i = 1; i <= 5; i++) {
             // lambda表达式内部必须是final
@@ -566,7 +568,6 @@ public class ReadWriteLockDemo {
                 myCache.put(tempInt + "", tempInt +  "");
             }, String.valueOf(i)).start();
         }
-
         // 线程操作资源类， 5个线程读
         for (int i = 1; i <= 5; i++) {
             // lambda表达式内部必须是final
@@ -604,4 +605,12 @@ public class ReadWriteLockDemo {
 5	 读取完成：5
 ```
 
-从运行结果我们可以看出，写入操作是一个一个线程进行执行的，并且中间不会被打断，而读操作的时候，是同时5个线程进入，然后并发读取操作
+结论：
+
+- 写入操作是一个一个线程进行执行的，并且中间不会被打断；
+- 读操作是同时5个线程进入，然后并发读取操作。
+
+
+
+## 锁的总结
+
