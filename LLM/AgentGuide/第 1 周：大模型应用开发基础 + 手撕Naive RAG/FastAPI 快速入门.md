@@ -55,6 +55,7 @@ You type the first parameter of the function, `first_name`, then a dot (`.`) and
 
 But, sadly, you get nothing useful:
 
+![自动补全无效](../pics/自动补全无效.png "自动补全无效")
 
 #### Add types
 Let's modify a single line from the previous version.
@@ -83,9 +84,12 @@ But now, imagine you are again in the middle of creating that function, but with
 
 At the same point, you try to trigger the autocomplete with `Ctrl+Space` and you see:
 
+![自动补全生效](../pics/自动补全生效.png "自动补全生效")
 
 With that, you can scroll, seeing the options, until you find the one that "rings a bell":
 > 有了这个，你可以滚动查看选项，直到找到那个“听起来耳熟”的选项：
+
+![通过自动补全找到目标方法](../pics/通过自动补全找到目标方法.png "通过自动补全找到目标方法")
 
 ### More motivation
 Check this function, it already has type hints:
@@ -97,6 +101,7 @@ def get_name_with_age(name: str, age: int):
 ```
 Because the editor knows the types of the variables, you don't only get completion, you also get error checks:
 
+![python类型帮助error check](../pics/python类型帮助error check.png "python类型帮助error check")
 
 Now you know that you have to fix it, convert `age` to a string with `str(age)`:
 
@@ -182,7 +187,7 @@ That means: "the variable items is a list, and each of the items in this list is
 By doing that, your editor can provide support even while processing items from the list:
 > 通过这种方式，你的编辑器即使在处理列表中的元素时也能提供支持：
 
-
+![python泛型内部的自动补全](../pics/python泛型内部的自动补全.png "python泛型内部的自动补全")
 
 Without types, that's almost impossible to achieve.
 > 没有类型的话，这几乎是不可能实现的。
@@ -398,7 +403,7 @@ def get_person_name(one_person: Person):
 And then, again, you get all the editor support:
 > 然后，同样，你会获得所有的编辑器支持：
 
-
+![class_as_type支持自动补全](../pics/class_as_type支持自动补全.png "class_as_type支持自动补全")
 
 Notice that this means "`one_perso`n is an instance of the class `Person`".
 > 请注意，这意味着“one_person是Person类的一个实例”。
