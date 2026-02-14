@@ -552,3 +552,496 @@ If you already went through all the tutorial and came back to see more about typ
 ---
 
 ## 后端基础：FastAPI 快速入门——Concurrency and async / await（并发和异步/等待）
+Details about the `async def` syntax for path operation functions and some background about asynchronous code, concurrency, and parallelism.
+> 关于 async def 语法在 路径操作函数 中的详细信息，以及一些关于异步代码、并发和并行性的背景知识。
+
+### In a hurry?赶时间吗
+**TL;DR: 长话短说：**
+
+If you are using third party libraries that tell you to call them with `await`, like:
+如果你正在使用要求你用await调用它们的第三方库，例如：
+
+``` python
+results = await some_library()
+```
+
+Then, declare your path operation functions with async def like:
+> 然后，用async def声明你的路径操作函数，如下所示：
+
+``` python
+@app.get('/')
+async def read_results():
+    results = await some_library()
+    return results
+```
+
+```
+Note
+You can only use await inside of functions created with async def.
+你只能在使用 async def 创建的函数内部使用 await。
+```
+
+If you are using a third party library that communicates with something (a database, an API, the file system, etc.) and doesn't have support for using await, (this is currently the case for most database libraries), then declare your path operation functions as normally, with just def, like:
+> 如果你正在使用一个第三方库来与某些东西（数据库、API、文件系统等）进行通信，且该库不支持使用await（目前大多数数据库库都是这种情况），那么只需像平常一样用def来声明你的路径操作函数，例如：
+
+``` python
+@app.get('/')
+def results():
+    results = some_library()
+    return results
+```
+
+If your application (somehow) **doesn't** have to communicate with anything else and wait for it to respond, use `async def`, even if you don't need to use `await` inside.
+> 如果你的应用程序（不管出于什么原因）不需要与其他任何东西通信并等待其响应，那么即使你不需要在内部使用await，也请使用async def。
+
+If you just don't know, use normal `def`.
+> 如果你不确定，就使用普通的def。
+
+Note: You can mix `def` and `async def` in your path operation functions as much as you need and define each one using the best option for you. FastAPI will do the right thing with them.
+> 你可以根据需要在路径操作函数中混合使用def和async def，并选择最适合自己的方式来定义每一个函数。FastAPI会妥善处理它们。
+
+Anyway, in any of the cases above, FastAPI will still work asynchronously and be extremely fast.
+> 无论如何，在上述任何情况下，FastAPI 仍将以异步方式工作，并且速度极快。
+
+But by following the steps above, it will be able to do some performance optimizations.
+> 但按照上述步骤操作，它将能够进行一些性能优化。
+
+### Technical Details
+Modern versions of Python have support for "asynchronous code" using something called "coroutines", with async and await syntax.
+> Python 的现代版本支持使用名为“协程”的 “异步代码”，并采用 async 和 await 语法。
+
+Let's see that phrase by parts in the sections below:
+> 下面我们将在各部分中逐部分分析这个短语：
+- Asynchronous Code 异步代码
+- async and await
+- Coroutines 协程
+
+### Asynchronous Code
+Asynchronous code just means that the language has a way to tell the computer / program that at some point in the code, it will have to wait for something else to finish somewhere else. Let's say that something else is called "slow-file".
+> 异步代码的意思就是，这种语言有一种方式可以告诉计算机/程序，在代码的某个地方，它必须等待其他事情在别处完成。假设这个其他事情叫做“慢文件”。
+
+So, during that time, the computer can go and do some other work, while "slow-file" finishes.
+> 因此，在这段时间里，计算机可以去做一些其他工作，同时等待“慢文件”完成。
+
+Then the computer / program will come back every time it has a chance because it's waiting again, or whenever it finished all the work it had at that point. And it will see if any of the tasks it was waiting for have already finished, doing whatever it had to do.
+> 然后，计算机/程序每次有机会时都会回来，因为它又在等待了，或者每当它完成了当时手头的所有工作时也会回来。而且它会查看它正在等待的任务中是否有已经完成的，并执行它必须做的任何事情。
+
+Next, it takes the first task to finish (let's say, our "slow-file") and continues whatever it had to do with it.
+> 接下来，它会先完成第一项任务（假设是我们的“慢文件”），然后继续处理与该任务相关的后续事宜。
+
+That "wait for something else" normally refers to I/O operations that are relatively "slow" (compared to the speed of the processor and the RAM memory), like waiting for:
+> 这里的“等待其他事物”通常指的是相对“缓慢”的输入/输出操作（与处理器和随机存取存储器的速度相比），比如等待：
+
+- the data from the client to be sent through the network
+- > 通过网络发送的来自客户端的数据
+- the data sent by your program to be received by the client through the network
+- > 你的程序发送、将通过网络被客户端接收的数据
+- the contents of a file in the disk to be read by the system and given to your program
+- > 将由系统读取并提供给你的程序的磁盘中文件的内容
+- the contents your program gave to the system to be written to disk
+- > 你的程序提供给系统以便写入磁盘的内容
+- a remote API operation
+- a database operation to finish
+- a database query to return the results
+- etc. 
+
+As the execution time is consumed mostly by waiting for I/O operations, they call them "**I/O bound**" operations.
+> 由于执行时间主要消耗在等待输入/输出操作上，因此它们被称为“输入/输出密集型”操作。
+
+It's called "asynchronous" because the computer / program doesn't have to be "synchronized" with the slow task, waiting for the exact moment that the task finishes, while doing nothing, to be able to take the task result and continue the work.
+> 它被称为“异步”，是因为计算机/程序不必与缓慢的任务“同步”，不必在等待任务完成的确切时刻无所事事，而是可以获取任务结果并继续工作。
+
+Instead of that, by being an "asynchronous" system, once finished, the task can wait in line a little bit (some microseconds) for the computer / program to finish whatever it went to do, and then come back to take the results and continue working with them.
+> 相反，作为一个“异步”系统，任务完成后，可以稍等片刻（几微秒），让计算机/程序完成它正在做的任何事情，然后再回来获取结果并继续处理。
+
+For "synchronous" (contrary to "asynchronous") they commonly also use the term "sequential", because the computer / program follows all the steps in sequence before switching to a different task, even if those steps involve waiting.
+> 对于“同步”（与“异步”相对），他们通常也使用“顺序”这一术语，因为计算机/程序会按顺序执行所有步骤，然后才切换到其他任务，即便这些步骤涉及等待。
+
+#### Concurrency and Burgers
+This idea of **asynchronous** code described above is also sometimes called "**concurrency**". It is different from "**parallelism**".
+> 上面描述的这种异步代码的概念有时也被称为“并发”。它与“并行”不同。
+
+Concurrency and parallelism both relate to "different things happening more or less at the same time".
+> 并发和并行都与“或多或少同时发生的不同事情”有关。
+
+But the details between concurrency and parallelism are quite different.
+> 但并发（concurrency）和并行（parallelism）之间的细节存在很大差异。
+
+To see the difference, imagine the following story about burgers:
+> 要了解其中的区别，请想象下面这个关于汉堡的故事：
+
+#### Concurrent Burgers
+You go with your crush to get fast food, you stand in line while the cashier takes the orders from the people in front of you.
+> 你和你暗恋的人一起去买快餐，你排队的时候，收银员正在接待你前面的人。
+
+Then it's your turn, you place your order of 2 very fancy burgers for your crush and you.
+> 然后轮到你了，你为自己和心仪的人点了两份非常精致的汉堡。
+
+The cashier says something to the cook in the kitchen so they know they have to prepare your burgers (even though they are currently preparing the ones for the previous clients).
+> 收银员对厨房里的厨师说了些什么，这样他们就知道得准备你的汉堡了（尽管他们目前正在为之前的顾客准备汉堡）。
+
+You pay. 
+
+The cashier gives you the number of your turn.
+> 收银员给了你你的取餐号码。
+
+While you are waiting, you go with your crush and pick a table, you sit and talk with your crush for a long time (as your burgers are very fancy and take some time to prepare).
+> 等待的时候，你和心仪的人一起选了个桌子坐下，和对方聊了很久（因为你们点的汉堡很精致，需要花点时间准备）。
+
+As you are sitting at the table with your crush, while you wait for the burgers, you can spend that time admiring how awesome, cute and smart your crush is.
+> 当你和心仪的人坐在餐桌旁等汉堡时，你可以趁这段时间欣赏对方有多棒、多可爱、多聪明。
+
+While waiting and talking to your crush, from time to time, you check the number displayed on the counter to see if it's your turn already.
+> 在等待并和你暗恋的人聊天时，你会时不时查看计数器上显示的数字，看看是不是已经轮到你了。
+
+Then at some point, it finally is your turn. You go to the counter, get your burgers and come back to the table.
+> 然后在某个时刻，终于轮到你了。你走到柜台，拿到汉堡，然后回到座位上。
+
+You and your crush eat the burgers and have a nice time. 
+> 你和你的心上人一起吃汉堡，度过了一段愉快的时光。
+
+Imagine you are the computer / program in that story.
+> 想象你是那个故事里的电脑/程序。
+
+While you are at the line, you are just idle, waiting for your turn, not doing anything very "productive". But the line is fast because the cashier is only taking the orders (not preparing them), so that's fine.
+> 排队的时候，你只是闲着，等着轮到自己，没做什么很“有成效”的事。不过队伍移动很快，因为收银员只负责接单（不负责备餐），所以还好。
+
+Then, when it's your turn, you do actual "productive" work, you process the menu, decide what you want, get your crush's choice, pay, check that you give the correct bill or card, check that you are charged correctly, check that the order has the correct items, etc.
+> 然后，轮到你时，你就会做一些实际的“有成效”的工作：看菜单、决定自己想吃什么、问心上人想吃什么、付款、确认自己给的账单或卡片是对的、确认收费无误、确认点的餐品都对，等等。
+
+> But then, even though you still don't have your burgers, your work with the cashier is "on pause", because you have to wait for your burgers to be ready.
+> 但即便如此，尽管你还没拿到汉堡，你和收银员的事务处于“暂停”状态，因为你得等待汉堡做好。
+
+But as you go away from the counter and sit at the table with a number for your turn, you can switch your attention to your crush, and "work" on that. Then you are again doing something very "productive" as is flirting with your crush.
+> 但当你离开柜台，坐到标有自己序号的桌子旁时，你可以把注意力转移到你的心上人身上，然后“专注”于这件事。这样一来，你又在做一件非常“有成效”的事情了，就像和心上人调情一样。
+
+Then the cashier says "I'm finished with doing the burgers" by putting your number on the counter's display, but you don't jump like crazy immediately when the displayed number changes to your turn number. You know no one will steal your burgers because you have the number of your turn, and they have theirs.
+> 然后收银员把你的号码放在柜台的显示屏上，说“汉堡做好了”，但当显示屏上的号码变成你的号码时，你不会立刻激动地跳起来。你知道没人会偷走你的汉堡，因为你有自己的取餐号，他们也有他们的。
+
+So you wait for your crush to finish the story (finish the current work/ task being processed), smile gently and say that you are going for the burgers.
+> 所以你要等你的心上人讲完这个故事（完成当前的工作/正在处理的任务），温柔地笑一笑，然后说你要去买汉堡了。
+
+Then you go to the counter, to the initial task that is now finished, pick the burgers, say thanks and take them to the table. That finishes that step / task of interaction with the counter. That in turn, creates a new task, of "eating burgers", but the previous one of "getting burgers" is finished.
+> 然后你走到柜台，去处理那个现在已经完成的初始任务，拿起汉堡，说声谢谢，再把它们拿到桌子上。这就完成了与柜台互动的那一步/任务。这相应地会生成一个新任务——“吃汉堡”，但之前那个“拿汉堡”的任务已经完成了。
+
+#### Parallel Burgers
+Now let's imagine these aren't "Concurrent Burgers", but "Parallel Burgers".
+> 现在让我们想象一下，这些不是“并发汉堡”，而是“并行汉堡”。
+
+You go with your crush to get parallel fast food.
+> 你和你的心上人一起去买并行快餐。
+
+You stand in line while several (let's say 8) cashiers that at the same time are cooks take the orders from the people in front of you.
+> 你排队的时候，有几位（假设是8位）同时兼任厨师的收银员正在接待你前面的人点单。
+
+Everyone before you is waiting for their burgers to be ready before leaving the counter because each of the 8 cashiers goes and prepares the burger right away before getting the next order.
+> 在你之前的每个人都在等他们的汉堡做好后才离开柜台，因为8个收银员中的每一个都会先去马上准备汉堡，然后再处理下一个订单。
+
+Then it's finally your turn, you place your order of 2 very fancy burgers for your crush and you.
+> 然后终于轮到你了，你为你和你的心上人点了两份非常精致的汉堡。
+
+You pay.
+
+The cashier goes to the kitchen.
+
+You wait, standing in front of the counter, so that no one else takes your burgers before you do, as there are no numbers for turns.
+> 你站在柜台前等待，这样就不会有人在你之前拿走你的汉堡，因为这里没有取餐号码。
+
+As you and your crush are busy not letting anyone get in front of you and take your burgers whenever they arrive, you cannot pay attention to your crush.
+> 当你和你暗恋的人忙着不让任何人插到你们前面、抢走你们点的汉堡（无论汉堡什么时候送到）时，你根本没法关注到你的暗恋对象。
+
+This is "synchronous" work, you are "synchronized" with the cashier/cook. You have to wait and be there at the exact moment that the cashier/cook finishes the burgers and gives them to you, or otherwise, someone else might take them.
+> 这是“同步”工作，你要和收银员/厨师保持“同步”。你必须等待，并在收银员/厨师做好汉堡并交给你的确切时刻在场，否则，其他人可能会把汉堡拿走。
+
+Then your cashier/cook finally comes back with your burgers, after a long time waiting there in front of the counter.
+> 在柜台前等了很久之后，你的收银员/厨师终于拿着汉堡回来了。
+
+You take your burgers and go to the table with your crush.
+> 你拿着汉堡，和你的心上人一起走向餐桌。
+
+You just eat them, and you are done.
+> 你只要吃掉它们，就完事了。
+
+There was not much talk or flirting as most of the time was spent waiting in front of the counter.
+> 大部分时间都花在柜台前等待，所以没什么交谈或调情。
+
+In this scenario of the parallel burgers, you are a computer / program with two processors (you and your crush), both waiting and dedicating their attention to be "waiting on the counter" for a long time.
+> 在这个平行汉堡的场景中，你是一台电脑/程序，拥有两个处理器（你和你的心上人），两者都在等待，并全神贯注，长时间“在柜台前等待”。
+
+The fast food store has 8 processors (cashiers/cooks). While the concurrent burgers store might have had only 2 (one cashier and one cook).
+> 这家快餐店有8名处理人员（收银员/厨师）。而那家同时经营汉堡的店可能只有2名（1名收银员和1名厨师）。
+
+But still, the final experience is not the best.
+> 但即便如此，最终的体验也不是最好的。
+
+This would be the parallel equivalent story for burgers.
+> 这将是汉堡的并行等效故事。
+
+For a more "real life" example of this, imagine a bank.
+> 举一个更“贴近现实生活”的例子，想象一下银行。
+
+Up to recently, most of the banks had multiple cashiers and a big line.
+> 直到最近，大多数银行都有多名出纳员，还有长长的队伍。
+
+All of the cashiers doing all the work with one client after the other.
+> 所有收银员都在一个接一个地为客户处理业务。
+
+And you have to wait in the line for a long time or you lose your turn.
+> 而且你得在队伍里等很久，否则就会错过轮到你的机会。
+
+You probably wouldn't want to take your crush with you to run errands at the bank.
+> 你可能不会想带着你的心上人一起去银行办事。
+
+#### Burger Conclusion
+In this scenario of "fast food burgers with your crush", as there is a lot of waiting, it makes a lot more sense to have a concurrent system.
+> 在“和心仪对象一起吃快餐汉堡”这种场景中，由于需要等待很长时间，采用并发系统就合理多了。
+
+This is the case for most of the web applications.
+> 大多数Web应用程序都是如此。
+
+Many, many users, but your server is waiting for their not-so-good connection to send their requests.
+> 用户非常非常多，但你的服务器却在等待他们不那么好的网络来发送请求。
+
+And then waiting again for the responses to come back.
+> 然后再次等待响应返回。
+
+This "waiting" is measured in microseconds, but still, summing it all, it's a lot of waiting in the end.
+> 这种“等待”以微秒为单位来衡量，但总的来说，最终还是有大量的等待时间。
+
+That's why it makes a lot of sense to use asynchronous code for web APIs.
+这> 就是为什么对Web API使用异步代码是非常合理的。
+
+This kind of asynchronicity is what made NodeJS popular (even though NodeJS is not parallel) and that's the strength of Go as a programming language.
+> 这种异步性正是NodeJS流行的原因（尽管NodeJS并非并行的），这也是Go作为编程语言的优势所在。
+
+And that's the same level of performance you get with FastAPI.
+> 而这正是你使用FastAPI所能获得的同等性能水平。
+
+And as you can have parallelism and asynchronicity at the same time, you get higher performance than most of the tested NodeJS frameworks and on par with Go, which is a compiled language closer to C (all thanks to Starlette).
+> 而且，由于你可以同时拥有并行性和异步性，你能获得比大多数经过测试的NodeJS框架更高的性能，并且与Go相当——Go是一种更接近C的编译型语言（这一切都要归功于Starlette）。
+
+#### Is concurrency better than parallelism?
+Nope! That's not the moral of the story.
+> 不！这不是这个故事的寓意。
+
+Concurrency is different than parallelism. And it is better on specific scenarios that involve a lot of waiting. Because of that, it generally is a lot better than parallelism for web application development. But not for everything.
+> 并发与并行不同。它在涉及大量等待的特定场景中表现更佳。正因为如此，在Web应用程序开发中，它通常比并行要好得多。但并非在所有情况下都是如此。
+
+So, to balance that out, imagine the following short story:
+> 那么，为了平衡这一点，请想象下面这个小故事：
+
+> You have to clean a big, dirty house.
+> 你必须打扫一个又大又脏的房子。
+
+Yep, that's the whole story.
+
+There's no waiting anywhere, just a lot of work to be done, on multiple places of the house.
+> 到处都没有等待，只有大量的工作要做，而且是在房子的多个地方。
+
+You could have turns as in the burgers example, first the living room, then the kitchen, but as you are not waiting for anything, just cleaning and cleaning, the turns wouldn't affect anything.
+> 你可以像汉堡的例子那样轮流进行，先打扫客厅，然后是厨房，但由于你不需要等待任何事情，只是不停地打扫，这种轮流方式并不会产生任何影响。
+
+It would take the same amount of time to finish with or without turns (concurrency) and you would have done the same amount of work.
+> 无论有没有轮次（并发），完成任务所需的时间相同，你所做的工作量也相同。
+
+But in this case, if you could bring the 8 ex-cashier/cooks/now-cleaners, and each one of them (plus you) could take a zone of the house to clean it, you could do all the work in parallel, with the extra help, and finish much sooner.
+> 但在这种情况下，如果你能带来那8名曾经的收银员/厨师/现在的清洁工，并且他们每个人（再加上你）都能负责房子的一个区域进行清洁，那么借助额外的帮助，你们就可以并行完成所有工作，而且能快得多地完成。
+
+In this scenario, each one of the cleaners (including you) would be a processor, doing their part of the job.
+> 在这种情况下，每个清洁工（包括你在内）都将是一个处理者，负责完成自己分内的工作。
+
+And as most of the execution time is taken by actual work (instead of waiting), and the work in a computer is done by a CPU, they call these problems "**CPU bound**".
+> 由于大部分执行时间都用于实际工作（而非等待），而计算机中的工作是由CPU完成的，因此他们将这些问题称为“CPU密集型”。
+
+Common examples of CPU bound operations are things that require complex math processing.
+> CPU密集型操作的常见例子是那些需要复杂数学处理的事情。
+
+For example: 
+
+- Audio or image processing.
+- Computer vision: an image is composed of millions of pixels, each pixel has 3 values / colors, processing that normally requires computing something on those pixels, all at the same time.
+- > 计算机视觉：图像由数百万个像素组成，每个像素都有3个值/颜色，处理图像通常需要同时对这些像素进行计算。
+- Machine Learning: it normally requires lots of "matrix" and "vector" multiplications. Think of a huge spreadsheet with numbers and multiplying all of them together at the same time.
+- > 机器学习：它通常需要大量的“矩阵”和“向量”乘法运算。可以想象成一个巨大的数字表格，并且要同时将所有数字相乘。
+- Deep Learning: this is a sub-field of Machine Learning, so, the same applies. It's just that there is not a single spreadsheet of numbers to multiply, but a huge set of them, and in many cases, you use a special processor to build and / or use those models.
+- > 深度学习：这是机器学习的一个子领域，因此，同样的道理也适用。只不过这里不是单一的数字表格进行乘法运算，而是有大量的数字集合，而且在很多情况下，你需要使用专门的处理器来构建和/或使用这些模型。
+
+#### Concurrency + Parallelism: Web + Machine Learning
+With FastAPI you can take advantage of concurrency that is very common for web development (the same main attraction of NodeJS).
+> 借助FastAPI，你可以利用在Web开发中非常常见的并发特性（这也是NodeJS的主要优势）。
+
+But you can also exploit the benefits of parallelism and multiprocessing (having multiple processes running in parallel) for CPU bound workloads like those in Machine Learning systems.
+> 但你也可以利用并行性和多处理（让多个进程并行运行）的优势来处理像机器学习系统中那样的CPU密集型工作负载。
+
+That, plus the simple fact that Python is the main language for Data Science, Machine Learning and especially Deep Learning, make FastAPI a very good match for Data Science / Machine Learning web APIs and applications (among many others).
+> 此外，Python 是 数据科学、机器学习，尤其是深度学习的主要语言，这一简单事实使得 FastAPI 非常适合数据科学/机器学习 Web API 和应用程序（以及许多其他领域）。
+
+To see how to achieve this parallelism in production see the section about [Deployment](https://fastapi.tiangolo.com/deployment/, "deployment").
+> 要了解如何在生产环境中实现这种并行性，请参见关于部署的部分。
+
+### async and await
+Modern versions of Python have a very intuitive way to define asynchronous code. This makes it look just like normal "sequential" code and do the "awaiting" for you at the right moments.
+> Python的现代版本有一种非常直观的方式来定义异步代码。这使得它看起来就像普通的“顺序”代码，并在适当的时刻为你执行“等待”操作。
+
+When there is an operation that will require waiting before giving the results and has support for these new Python features, you can code it like:
+> 当存在需要等待一段时间才能给出结果的操作，并且该操作支持这些新的Python功能时，你可以这样编写代码：
+
+```
+burgers = await get_burgers(2)
+```
+
+The key here is the `await`. It tells Python that it has to wait for `get_burgers(2)` to finish doing its thing before storing the results in `burgers`. With that, Python will know that it can go and do something else in the meanwhile (like receiving another request).
+> 这里的关键是await。它告诉Python，必须等待get_burgers(2)完成其操作，然后才能将结果存储到burgers中。这样一来，Python就会知道在此期间可以去做其他事情（比如接收另一个请求）。
+
+For `await` to work, it has to be inside a function that supports this asynchronicity. To do that, you just declare it with `async def`:
+> 要让await生效，它必须位于一个支持这种异步性的函数内部。要实现这一点，只需用async def来声明该函数即可：
+
+``` python
+async def get_burgers(number: int):
+    # Do some asynchronous stuff to create the burgers
+    return burgers
+```
+...instead of def:
+``` python
+# This is not asynchronous
+def get_sequential_burgers(number: int):
+    # Do some sequential stuff to create the burgers
+    return burgers
+```
+
+With `async def`, Python knows that, inside that function, it has to be aware of await expressions, and that it can "pause" the execution of that function and go do something else before coming back.
+> 通过async def，Python 知道在该函数内部需要留意await表达式，并且它可以“暂停”该函数的执行，去做其他事情之后再回来。
+
+When you want to call an `async def` function, you have to "await" it. So, this won't work:
+> 当你想要调用一个async def函数时，你必须“await”它。因此，下面这样做是行不通的：
+
+```
+# This won't work, because get_burgers was defined with: async def
+burgers = get_burgers(2)
+```
+So, if you are using a library that tells you that you can call it with `await`, you need to create the path operation functions that uses it with `async def`, like in:
+> 所以，如果你正在使用一个库，它告诉你可以用await来调用它，那么你需要创建使用async def的路径操作函数，就像这样：
+
+``` python
+@app.get('/burgers')
+async def read_burgers():
+    burgers = await get_burgers(2)
+    return burgers
+```
+
+#### More technical details
+You might have noticed that `await` can only be used inside of functions defined with `async def`.
+> 你可能已经注意到，await只能在以async def定义的函数内部使用。
+
+But at the same time, functions defined with `async def` have to be "awaited". So, functions with `async def` can only be called inside of functions defined with `async def` too.
+> 但与此同时，用async def定义的函数必须被“等待”。因此，用async def定义的函数也只能在同样用async def定义的函数内部被调用。
+
+So, about `the egg and the chicken`, how do you call the first async function?
+> 那么，关于先有蛋还是先有鸡的问题，第一个async函数该如何调用呢？
+
+If you are working with FastAPI you don't have to worry about that, because that "first" function will be your path operation function, and FastAPI will know how to do the right thing.
+> 如果你正在使用FastAPI，就不必担心这一点，因为那个“第一个”函数将是你的路径操作函数，而FastAPI会知道如何正确处理。
+
+But if you want to use async / await without FastAPI, you can do it as well.
+> 但如果你想在不使用FastAPI的情况下使用async/await，也是可以的。
+
+#### Write your own async code
+Starlette (and FastAPI) are based on [AnyIO](https://anyio.readthedocs.io/en/stable/, "AnyIO"), which makes it compatible with both Python's standard library asyncio and Trio.
+> Starlette（以及FastAPI）基于AnyIO构建，这使其与Python标准库中的asyncio和Trio都能兼容。
+
+In particular, you can directly use AnyIO for your advanced concurrency use cases that require more advanced patterns in your own code.
+> 特别是，对于在自己的代码中需要更高级模式的高级并发用例，您可以直接使用AnyIO。
+
+And even if you were not using FastAPI, you could also write your own async applications with AnyIO to be highly compatible and get its benefits (e.g. structured concurrency).
+> 即使你没有使用FastAPI，也可以用AnyIO编写自己的异步应用程序，使其具有高度的兼容性并获得其带来的优势（例如结构化并发）。
+
+I created another library on top of AnyIO, as a thin layer on top, to improve a bit the type annotations and get better autocompletion, inline errors, etc. It also has a friendly introduction and tutorial to help you understand and write your own async code: [Asyncer](https://asyncer.tiangolo.com/, "Asyncer"). It would be particularly useful if you need to combine async code with regular (blocking/synchronous) code.
+> 我在AnyIO的基础上又创建了一个库，作为其顶层的一个薄封装层，以稍微改进类型注解，并获得更好的自动补全、行内错误提示等功能。它还配有友好的入门介绍和教程，帮助你理解并编写自己的异步代码：Asyncer。如果你需要将异步代码与常规（阻塞/同步）代码结合使用，这个库会特别有用。
+
+#### Other forms of asynchronous code
+This style of using async and await is relatively new in the language.
+> 这种使用async和await的风格在该语言中相对较新。
+
+But it makes working with asynchronous code a lot easier.
+> 但它让异步代码的处理变得容易多了。
+
+This same syntax (or almost identical) was also included recently in modern versions of JavaScript (in Browser and NodeJS).
+> 这种相同的语法（或几乎相同的语法）最近也被纳入了JavaScript的现代版本中（包括浏览器端和NodeJS环境）。
+
+But before that, handling asynchronous code was quite more complex and difficult.
+> 但在此之前，处理异步代码要复杂和困难得多。
+
+In previous versions of Python, you could have used threads or Gevent. But the code is way more complex to understand, debug, and think about.
+> 在Python的早期版本中，你可以使用线程或Gevent。但这样的代码在理解、调试和思考起来要复杂得多。
+
+In previous versions of NodeJS / Browser JavaScript, you would have used "callbacks". Which leads to "**callback hell**".
+> 在 NodeJS/浏览器 JavaScript 的早期版本中，你可能会使用“回调函数”。这会导致“回调地狱”。
+
+### Coroutines
+Coroutine is just the very fancy term for the thing returned by an async def function. Python knows that it is something like a function, that it can start and that it will end at some point, but that it might be paused internally too, whenever there is an await inside of it.
+> 协程只是一个花哨的术语，指的是由async def函数返回的东西。Python知道它有点像函数，可以启动，并且会在某个时候结束，但只要其中包含await，它内部也可能会暂停。
+
+But all this functionality of using asynchronous code with async and await is many times summarized as using "coroutines". It is comparable to the main key feature of Go, the "Goroutines".
+> 但使用带有async和await的异步代码的所有这些功能，很多时候都被概括为使用“协程”。这类似于Go语言的主要核心特性“Goroutines”。
+
+### Conclusion
+Let's see the same phrase from above:
+> 让我们看看上面的同一个短语：
+
+> Modern versions of Python have support for "asynchronous code" using something called "coroutines", with async and await syntax.
+
+All that is what powers FastAPI (through Starlette) and what makes it have such an impressive performance.
+> 所有这些都是 FastAPI（通过 Starlette）的动力所在，也正是这些使其拥有如此出色的性能。
+
+### Very Technical Details¶ 非常技术化的细节¶
+Warning: You can probably skip this.
+
+These are very technical details of how FastAPI works underneath.
+> 这些是关于 FastAPI 底层工作原理的非常技术性的细节。
+
+If you have quite some technical knowledge (coroutines, threads, blocking, etc.) and are curious about how FastAPI handles async def vs normal def, go ahead.
+> 如果你具备相当多的技术知识（协程、线程、阻塞等），并且好奇FastAPI是如何处理async def与普通的def的，那就继续往下看吧。
+
+#### Path operation functions
+When you declare a path operation function with normal def instead of `async def`, it is run in an external threadpool that is then awaited, instead of being called directly (as it would block the server).
+> 当你使用普通的def而非async def来声明一个路径操作函数时，该函数会在一个外部线程池中运行，然后等待其完成，而不是直接被调用（因为直接调用会阻塞服务器）。
+
+If you are coming from another async framework that does not work in the way described above and you are used to defining trivial compute-only path operation functions with plain def for a tiny performance gain (about 100 nanoseconds), please note that in FastAPI the effect would be quite opposite. In these cases, it's better to use async def unless your path operation functions use code that performs blocking I/O.
+> 如果你之前使用的是另一种异步框架，其工作方式与上述描述不同，并且你习惯用普通的def来定义仅用于简单计算的路径操作函数，以获得微小的性能提升（约100纳秒），那么请注意，在FastAPI中，这样做的效果会截然相反。在这些情况下，除非你的路径操作函数使用了执行阻塞式I/O的代码，否则最好使用async def。
+
+Still, in both situations, chances are that FastAPI will still be faster than (or at least comparable to) your previous framework.
+> 不过，在这两种情况下，FastAPI有可能会比你之前使用的框架仍然更快（或者至少不相上下）。
+
+#### Dependencies
+The same applies for dependencies. If a dependency is a standard def function instead of async def, it is run in the external threadpool.
+> 对于依赖项也是如此。如果依赖项是标准的def函数而非async def函数，它将在外部线程池中运行。
+
+#### Sub-dependencies
+You can have multiple dependencies and sub-dependencies requiring each other (as parameters of the function definitions), some of them might be created with async def and some with normal def. It would still work, and the ones created with normal def would be called on an external thread (from the threadpool) instead of being "awaited".
+> 你可以有多个依赖项和子依赖项相互依赖（作为函数定义的参数），其中一些可能是用async def创建的，另一些则是用普通的def创建的。这仍然可以正常工作，而用普通def创建的那些将在外部线程（来自线程池）上被调用，而不是被“等待”。
+
+#### Other utility functions
+Any other utility function that you call directly can be created with normal def or async def and FastAPI won't affect the way you call it.
+> 你直接调用的任何其他工具函数都可以用普通的def或async def创建，FastAPI不会影响你调用它的方式。
+
+This is in contrast to the functions that FastAPI calls for you: path operation functions and dependencies.
+> 这与 FastAPI 为你调用的函数形成对比：路径操作函数和依赖项。
+
+If your utility function is a normal function with def, it will be called directly (as you write it in your code), not in a threadpool, if the function is created with async def then you should `await` for that function when you call it in your code.
+> 如果你的工具函数是一个用 def 定义的普通函数，它会被直接调用（就像你在代码中编写的那样），而不是在线程池中调用；如果该函数是用 async def 创建的，那么在代码中调用它时，你应该使用 await 来等待该函数。
+
+Again, these are very technical details that would probably be useful if you came searching for them.
+> 再说一次，这些都是非常技术性的细节，如果你是专门来查找它们的，可能会觉得有用。
+
+Otherwise, you should be good with the guidelines from the section above: In a hurry?.
+否则，遵循上文“赶时间？”部分的指导原则就足够了。
+
+---
+
+
+
+
+
+
+
+
