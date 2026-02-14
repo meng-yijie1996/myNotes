@@ -1,5 +1,4 @@
-## 后端基础：FastAPI 快速入门
-### Python Types Intro（类型简介）
+## 后端基础：FastAPI 快速入门——Python Types Intro（类型简介）
 
 Python has support for optional "type hints" (also called "type annotations").
 > Python支持可选的“类型提示”（也称为“类型注解”）。
@@ -549,3 +548,7 @@ Info
 If you already went through all the tutorial and came back to see more about types, a good resource is the "cheat sheet" from `mypy`.
 如果你已经看完了所有教程，回来想了解更多关于类型的内容，一个不错的资源是来自mypy的“速查表”。
 ```
+
+---
+
+## 后端基础：FastAPI 快速入门——Concurrency and async / await（并发和异步/等待）
