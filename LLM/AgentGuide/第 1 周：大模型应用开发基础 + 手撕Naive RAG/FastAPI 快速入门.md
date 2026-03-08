@@ -1208,7 +1208,732 @@ In many cases it's not very obvious how environment variables would be useful an
 
 For example, you will need this information in the next section, about Virtual Environments.
 
+---
 
+## 后端基础：FastAPI 快速入门——Virtual Environments
+When you work in Python projects you probably should use a **virtual environment** (or a similar mechanism) to isolate the packages you install for each project.
+> 在 Python 项目中工作时，你可能应该使用 虚拟环境（或类似机制）来隔离为每个项目安装的包。
+
+Tip: A virtual environment is a directory with some files in it.
+
+This page will teach you how to use virtual environments and how they work.
+> 本页面将教你如何使用虚拟环境以及它们的工作原理。
+
+If you are ready to adopt a tool that manages everything for you (including installing Python), try uv.
+如果你已经准备好采用一个能为你管理所有事务（包括安装Python）的工具，不妨试试uv。
+
+### Create a Project
+First, create a directory for your project.
+
+What I normally do is that I create a directory named code inside my home/user directory.
+
+And inside of that I create **one directory per project**.
+
+### Create a Virtual Environment
+When you start working on a Python project for the first time, create a virtual environment inside your project.
+> 当你开始从事一个Python项目时，第一时间在你的项目内部创建一个虚拟环境。
+
+Tip： You only need to do this **once** per project, not every time you work.
+
+#### venv
+To create a virtual environment, you can use the venv module that comes with Python.
+> 要创建虚拟环境，你可以使用 Python 自带的 venv 模块。
+``` bash
+python -m venv .venv
+# python: use the program called python
+# -m: call a module as a script, we'll tell it which module next
+# venv: use the module called venv that normally comes installed with Python
+# .venv: create the virtual environment in the new directory .venv
+```
+
+#### uv
+If you have uv installed, you can use it to create a virtual environment.
+``` bash
+uv venv
+```
+Tip: 
+- By default, uv will create a virtual environment in a directory called .venv.
+- But you could customize it passing an additional argument with the directory name.
+
+That command creates a new virtual environment in a directory called .venv.
+> 该命令会在名为.venv的目录中创建一个新的虚拟环境。
+
+.venv or other name: You could create the virtual environment in a different directory, but there's a convention of calling it .venv.
+
+``` bash
+# 执行结果
+C:\Users\myj\Desktop\2025-2026\code\fastapi>tree
+卷 Windows-SSD 的文件夹 PATH 列表
+卷序列号为 DA3E-CD6D
+C:.
+└─.venv
+    ├─Include
+    ├─Lib
+    │  └─site-packages
+    │      ├─pip
+    │      │  ├─_internal
+    │      │  │  ├─cli
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─commands
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─models
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─operations
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─req
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─utils
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─vcs
+    │      │  │  │  └─__pycache__
+    │      │  │  └─__pycache__
+    │      │  ├─_vendor
+    │      │  │  ├─cachecontrol
+    │      │  │  │  ├─caches
+    │      │  │  │  │  └─__pycache__
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─certifi
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─chardet
+    │      │  │  │  ├─cli
+    │      │  │  │  │  └─__pycache__
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─colorama
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─distlib
+    │      │  │  │  ├─_backport
+    │      │  │  │  │  └─__pycache__
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─html5lib
+    │      │  │  │  ├─filters
+    │      │  │  │  │  └─__pycache__
+    │      │  │  │  ├─treeadapters
+    │      │  │  │  │  └─__pycache__
+    │      │  │  │  ├─treebuilders
+    │      │  │  │  │  └─__pycache__
+    │      │  │  │  ├─treewalkers
+    │      │  │  │  │  └─__pycache__
+    │      │  │  │  ├─_trie
+    │      │  │  │  │  └─__pycache__
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─idna
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─lockfile
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─msgpack
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─packaging
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─pep517
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─pkg_resources
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─progress
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─pytoml
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─requests
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─urllib3
+    │      │  │  │  ├─contrib
+    │      │  │  │  │  ├─_securetransport
+    │      │  │  │  │  │  └─__pycache__
+    │      │  │  │  │  └─__pycache__
+    │      │  │  │  ├─packages
+    │      │  │  │  │  ├─backports
+    │      │  │  │  │  │  └─__pycache__
+    │      │  │  │  │  ├─ssl_match_hostname
+    │      │  │  │  │  │  └─__pycache__
+    │      │  │  │  │  └─__pycache__
+    │      │  │  │  ├─util
+    │      │  │  │  │  └─__pycache__
+    │      │  │  │  └─__pycache__
+    │      │  │  ├─webencodings
+    │      │  │  │  └─__pycache__
+    │      │  │  └─__pycache__
+    │      │  └─__pycache__
+    │      ├─pip-19.0.3.dist-info
+    │      ├─pkg_resources
+    │      │  ├─extern
+    │      │  │  └─__pycache__
+    │      │  ├─_vendor
+    │      │  │  ├─packaging
+    │      │  │  │  └─__pycache__
+    │      │  │  └─__pycache__
+    │      │  └─__pycache__
+    │      ├─setuptools
+    │      │  ├─command
+    │      │  │  └─__pycache__
+    │      │  ├─extern
+    │      │  │  └─__pycache__
+    │      │  ├─_vendor
+    │      │  │  ├─packaging
+    │      │  │  │  └─__pycache__
+    │      │  │  └─__pycache__
+    │      │  └─__pycache__
+    │      ├─setuptools-40.8.0.dist-info
+    │      └─__pycache__
+    └─Scripts
+```
+
+### Activate the Virtual Environment
+Activate the new virtual environment so that any Python command you run or package you install uses it.
+激活新的虚拟环境，以便你运行的任何Python命令或安装的任何包都能使用该环境。
+
+Tip: Do this **every time** you start a new terminal session to work on the project.
+
+``` bash
+# Linux, macOS
+source .venv/bin/asource .venv/bin/activate
+```
+
+``` bash
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+```
+
+``` bash
+# Windows Bash
+source .venv/Scripts/activate
+```
+
+Tip:
+
+- Every time you install a new package in that environment, activate the environment **again**.
+- > 每次在该环境中安装新包时，请再次激活该环境。
+
+- This makes sure that if you use a terminal (CLI) program installed by that package, you use the one from your virtual environment and not any other that could be installed globally, probably with a different version than what you need.
+- > 这确保了如果你使用由该包安装的终端（CLI）程序，你使用的是来自虚拟环境的那个，而不是可能全局安装的任何其他程序，这些程序的版本很可能与你需要的版本不同。
+
+### Check the Virtual Environment is Active
+Check that the virtual environment is active (the previous command worked).
+> 检查虚拟环境是否处于激活状态（之前的命令是否生效）。
+
+Tip: This is optional, but it's a good way to check that everything is working as expected and you are using the virtual environment you intended.
+> 这是可选的，但这是一个很好的方法，可以检查一切是否按预期运行，以及你是否在使用你想要的虚拟环境。
+
+``` bash
+# Linux, macOS, Windows Bash
+which python
+```
+
+``` bash
+# Windows PowerShell
+Get-Command python
+> PS C:\Users\myj\Desktop\2025-2026\code\fastapi> Get-Command python
+> 
+> CommandType     Name                                               Version    Source
+> -----------     ----                                               -------    ------
+> Application     python.exe                                         3.7.415... D:\installsite\Python\Python37\python.exe
+
+```
+
+If it shows the python binary at .venv\Scripts\python, inside of your project (in this case awesome-project), then it worked. 🎉
+> 如果它显示的 python 可执行文件位于项目（在本例中为 awesome-project）内的 .venv\Scripts\python，那就说明成功了。🎉
+
+
+Upgrade pip¶ 升级 pip¶
+Tip 提示
+
+If you use uv you would use it to install things instead of pip, so you don't need to upgrade pip. 😎
+如果你使用uv，你会用它来安装东西，而不是用pip，所以你不需要升级pip。😎
+
+If you are using pip to install packages (it comes by default with Python), you should upgrade it to the latest version.
+如果你正在使用pip安装包（它是Python默认自带的），你应该将其升级到最新版本。
+
+Many exotic errors while installing a package are solved by just upgrading pip first.
+安装软件包时出现的许多奇特错误，只需先升级pip即可解决。
+
+Tip 提示
+
+You would normally do this once, right after you create the virtual environment.
+通常情况下，你只需在创建虚拟环境后执行一次这个操作。
+
+Make sure the virtual environment is active (with the command above) and then run:
+确保虚拟环境处于激活状态（使用上面的命令），然后运行：
+
+
+python -m pip install --upgrade pip
+
+████████████████████████████████████████ 100%
+████████████████████████████████████████ 百分之百
+
+restart ↻ 重启 ↻
+Tip 提示
+
+Sometimes, you might get a No module named pip error when trying to upgrade pip.
+有时，在尝试升级pip时，你可能会遇到No module named pip错误。
+
+If this happens, install and upgrade pip using the command below:
+如果发生这种情况，请使用以下命令安装并升级pip：
+
+
+python -m ensurepip --upgrade 
+
+████████████████████████████████████████ 100%
+████████████████████████████████████████ 百分之百
+
+restart ↻ 重启 ↻
+This command will install pip if it is not already installed and also ensures that the installed version of pip is at least as recent as the one available in ensurepip.
+如果尚未安装pip，此命令将安装它，并且还会确保所安装的pip版本至少与ensurepip中提供的版本一样新。
+
+Add .gitignore¶ 添加.gitignore¶
+If you are using Git (you should), add a .gitignore file to exclude everything in your .venv from Git.
+如果你正在使用Git（你应该使用），请添加一个.gitignore文件，以从Git中排除.venv中的所有内容。
+
+Tip 提示
+
+If you used uv to create the virtual environment, it already did this for you, you can skip this step. 😎
+如果你使用uv创建虚拟环境，它已经为你完成了这一步，你可以跳过此步骤。😎
+
+Tip 提示
+
+Do this once, right after you create the virtual environment.
+在创建虚拟环境后立即执行此操作一次。
+
+
+echo "*" > .venv/.gitignore
+
+restart ↻ 重启 ↻
+What that command means 该命令的含义
+Install Packages¶ 安装包¶
+After activating the environment, you can install packages in it.
+激活环境后，你可以在其中安装包。
+
+Tip 提示
+
+Do this once when installing or upgrading the packages your project needs.
+在安装或升级项目所需的包时，只需执行此操作一次。
+
+If you need to upgrade a version or add a new package you would do this again.
+如果需要升级版本或添加新包，你需要再次执行此操作。
+
+Install Packages Directly¶ 直接安装包¶
+If you're in a hurry and don't want to use a file to declare your project's package requirements, you can install them directly.
+如果你很匆忙，不想用文件来声明项目的包需求，可以直接安装它们。
+
+Tip 提示
+
+It's a (very) good idea to put the packages and versions your program needs in a file (for example requirements.txt or pyproject.toml).
+将程序所需的包及其版本放在一个文件中（例如requirements.txt或pyproject.toml）是一个（非常）好主意。
+
+
+pip
+uv
+
+pip install "fastapi[standard]"
+
+████████████████████████████████████████ 100%
+
+restart ↻ 重启 ↻
+
+Install from requirements.txt¶ 从requirements.txt¶安装
+If you have a requirements.txt, you can now use it to install its packages.
+如果你有一个requirements.txt，现在就可以用它来安装其中的包。
+
+
+pip
+uv
+
+pip install -r requirements.txt
+████████████████████████████████████████ 100%
+
+restart ↻ 重启 ↻
+
+requirements.txt
+Run Your Program¶ 运行你的程序¶
+After you activated the virtual environment, you can run your program, and it will use the Python inside of your virtual environment with the packages you installed there.
+激活虚拟环境后，你可以运行程序，程序将使用虚拟环境中的Python以及你在那里安装的包。
+
+
+python main.py
+
+Hello World
+
+restart ↻ 重启 ↻
+Configure Your Editor¶ 配置编辑器¶
+You would probably use an editor, make sure you configure it to use the same virtual environment you created (it will probably autodetect it) so that you can get autocompletion and inline errors.
+你可能会使用一个编辑器，要确保将其配置为使用你创建的同一个虚拟环境（它很可能会自动检测到该环境），这样你就能获得自动补全和行内错误提示功能。
+
+For example: 例如：
+
+VS Code VS代码
+PyCharm 
+Tip 提示
+
+You normally have to do this only once, when you create the virtual environment.
+通常情况下，你只需要在创建虚拟环境时执行一次这个操作。
+
+Deactivate the Virtual Environment¶ 停用虚拟环境¶
+Once you are done working on your project you can deactivate the virtual environment.
+完成项目工作后，你可以停用虚拟环境。
+
+
+deactivate
+
+restart ↻ 重启 ↻
+This way, when you run python it won't try to run it from that virtual environment with the packages installed there.
+这样一来，当你运行python时，它就不会尝试从那个安装了相关包的虚拟环境中运行了。
+
+Ready to Work¶ 准备工作¶
+Now you're ready to start working on your project.
+现在你可以开始处理你的项目了。
+
+Tip 提示
+
+Do you want to understand what's all that above?
+你想理解上面所说的一切吗？
+
+Continue reading. 👇🤓 继续阅读。👇🤓
+
+Why Virtual Environments¶ 为什么需要虚拟环境¶
+To work with FastAPI you need to install Python.
+要使用FastAPI，你需要安装Python。
+
+After that, you would need to install FastAPI and any other packages you want to use.
+之后，你需要安装 FastAPI以及任何你想要使用的其他包。
+
+To install packages you would normally use the pip command that comes with Python (or similar alternatives).
+要安装包，通常使用Python自带的pip命令（或类似的替代工具）。
+
+Nevertheless, if you just use pip directly, the packages would be installed in your global Python environment (the global installation of Python).
+然而，如果你直接使用pip，这些包将会安装在你的全局Python环境（Python的全局安装）中。
+
+The Problem¶ 问题¶
+So, what's the problem with installing packages in the global Python environment?
+那么，在全局Python环境中安装包有什么问题呢？
+
+At some point, you will probably end up writing many different programs that depend on different packages. And some of these projects you work on will depend on different versions of the same package. 😱
+在某些时候，你可能最终会编写许多依赖于不同包的不同程序。而且你参与的一些项目会依赖于同一包的不同版本。😱
+
+For example, you could create a project called philosophers-stone, this program depends on another package called harry, using the version 1. So, you need to install harry.
+例如，你可以创建一个名为philosophers-stone的项目，这个程序依赖于另一个名为harry的包，使用的版本是1。因此，你需要安装harry。
+
+requires
+
+philosophers-stone
+
+harry v1
+
+Then, at some point later, you create another project called prisoner-of-azkaban, and this project also depends on harry, but this project needs harry version 3.
+然后，在之后的某个时刻，你创建了另一个名为prisoner-of-azkaban的项目，这个项目也依赖于harry</b1，但它需要harry的版本为3。
+
+requires
+
+prisoner-of-azkaban
+
+harry v3
+
+But now the problem is, if you install the packages globally (in the global environment) instead of in a local virtual environment, you will have to choose which version of harry to install.
+但现在的问题是，如果你在全局环境中（而非本地的虚拟环境中）安装这些包，你就必须选择要安装哪个版本的harry。
+
+If you want to run philosophers-stone you will need to first install harry version 1, for example with:
+如果你想运行philosophers-stone，首先需要安装harry版本1，例如使用：
+
+
+pip install "harry==1"
+
+restart ↻ 重启 ↻
+And then you would end up with harry version 1 installed in your global Python environment.
+然后，你的全局Python环境中最终会安装harry版本1。
+
+philosophers-stone project
+
+global env
+
+requires
+
+harry v1
+
+philosophers-stone
+
+But then if you want to run prisoner-of-azkaban, you will need to uninstall harry version 1 and install harry version 3 (or just installing version 3 would automatically uninstall version 1).
+但是，如果你想运行prisoner-of-azkaban，你需要卸载harry版本1</b2，并安装harry版本3（或者直接安装版本3会自动卸载版本1）。
+
+
+pip install "harry==3"
+
+restart ↻ 重启 ↻
+And then you would end up with harry version 3 installed in your global Python environment.
+然后你的全局Python环境中最终会安装harry版本3。
+
+And if you try to run philosophers-stone again, there's a chance it would not work because it needs harry version 1.
+如果你尝试再次运行philosophers-stone，它有可能无法工作</b1，因为它需要harry的1版本。
+
+prisoner-of-azkaban project
+
+philosophers-stone project
+
+global env
+
+⛔️
+
+requires
+
+harry v1
+
+harry v3
+
+philosophers-stone
+
+prisoner-of-azkaban
+
+Tip 提示
+
+It's very common in Python packages to try the best to avoid breaking changes in new versions, but it's better to be safe, and install newer versions intentionally and when you can run the tests to check everything is working correctly.
+在Python包中，尽最大努力避免在新版本中出现破坏性变更的情况非常常见，但为了安全起见，最好有意安装更新版本，并且在能够运行测试以检查一切是否正常工作时再进行安装。
+
+Now, imagine that with many other packages that all your projects depend on. That's very difficult to manage. And you would probably end up running some projects with some incompatible versions of the packages, and not knowing why something isn't working.
+现在，想象一下，你的所有项目都依赖于许多其他包。这非常难以管理。而且你可能最终会在运行某些项目时使用了这些包的一些不兼容版本，却不知道为什么某些功能无法正常工作。
+
+Also, depending on your operating system (e.g. Linux, Windows, macOS), it could have come with Python already installed. And in that case it probably had some packages pre-installed with some specific versions needed by your system. If you install packages in the global Python environment, you could end up breaking some of the programs that came with your operating system.
+此外，根据你的操作系统（例如Linux、Windows、macOS），它可能已经预装了Python。在这种情况下，它可能还预装了一些特定版本的软件包，这些是你的系统所需要的。如果你在全局Python环境中安装软件包，最终可能会破坏一些随操作系统一起安装的程序。
+
+Where are Packages Installed¶ 包安装在哪里¶
+When you install Python, it creates some directories with some files in your computer.
+安装Python时，它会在你的电脑中创建一些包含文件的目录。
+
+Some of these directories are the ones in charge of having all the packages you install.
+其中一些目录负责存放你安装的所有包。
+
+When you run: 当你运行：
+
+
+💬 Don't run this now, it's just an example 🤓
+pip install "fastapi[standard]"
+████████████████████████████████████████ 100%
+
+restart ↻ 重启 ↻
+That will download a compressed file with the FastAPI code, normally from PyPI.
+这将下载一个包含FastAPI代码的压缩文件，通常来自PyPI。
+
+It will also download files for other packages that FastAPI depends on.
+它还将为FastAPI所依赖的其他包下载文件。
+
+Then it will extract all those files and put them in a directory in your computer.
+然后它会提取所有这些文件，并将它们放入你电脑的一个目录中。
+
+By default, it will put those files downloaded and extracted in the directory that comes with your Python installation, that's the global environment.
+默认情况下，它会将那些下载并解压的文件放在Python安装自带的目录中，也就是全局环境。
+
+What are Virtual Environments¶ 什么是虚拟环境¶
+The solution to the problems of having all the packages in the global environment is to use a virtual environment for each project you work on.
+解决所有包都位于全局环境这一问题的方法是，为你所从事的每个项目使用一个虚拟环境。
+
+A virtual environment is a directory, very similar to the global one, where you can install the packages for a project.
+虚拟环境是一个目录，与全局目录非常相似，您可以在其中安装项目所需的包。
+
+This way, each project will have its own virtual environment (.venv directory) with its own packages.
+这样一来，每个项目都将拥有自己的虚拟环境（.venv目录）和独立的包。
+
+prisoner-of-azkaban project
+
+.venv
+
+requires
+
+harry v3
+
+prisoner-of-azkaban
+
+philosophers-stone project
+
+.venv
+
+requires
+
+harry v1
+
+philosophers-stone
+
+What Does Activating a Virtual Environment Mean¶
+激活虚拟环境是什么意思¶
+When you activate a virtual environment, for example with:
+当你激活虚拟环境时，例如使用：
+
+
+Linux, macOS
+Windows PowerShell
+Windows Bash
+
+source .venv/bin/activate
+
+restart ↻ 重启 ↻
+
+That command will create or modify some environment variables that will be available for the next commands.
+该命令将创建或修改一些环境变量</b0，这些变量将可供后续命令使用。
+
+One of those variables is the PATH variable.
+其中一个变量是PATH变量。
+
+Tip 提示
+
+You can learn more about the PATH environment variable in the Environment Variables section.
+你可以在环境变量部分了解更多关于PATH环境变量的信息。
+
+Activating a virtual environment adds its path .venv/bin (on Linux and macOS) or .venv\Scripts (on Windows) to the PATH environment variable.
+激活虚拟环境会将其路径.venv/bin（在Linux和macOS上）或.venv\Scripts（在Windows上）添加到PATH环境变量中。
+
+Let's say that before activating the environment, the PATH variable looked like this:
+假设在激活环境之前，PATH变量是这样的：
+
+
+Linux, macOS
+Windows
+
+C:\Windows\System32
+That means that the system would look for programs in:
+这意味着系统将在以下位置查找程序：
+
+C:\Windows\System32
+
+After activating the virtual environment, the PATH variable would look something like this:
+激活虚拟环境后，PATH变量会看起来像这样：
+
+
+Linux, macOS
+Windows
+
+C:\Users\user\code\awesome-project\.venv\Scripts;C:\Windows\System32
+That means that the system will now start looking first for programs in:
+这意味着系统现在将首先开始在以下位置查找程序：
+
+
+C:\Users\user\code\awesome-project\.venv\Scripts
+before looking in the other directories.
+然后再查看其他目录。
+
+So, when you type python in the terminal, the system will find the Python program in
+所以，当你在终端中输入python时，系统会在
+
+
+C:\Users\user\code\awesome-project\.venv\Scripts\python
+and use that one. 并使用那个。
+
+
+An important detail is that it will put the virtual environment path at the beginning of the PATH variable. The system will find it before finding any other Python available. This way, when you run python, it will use the Python from the virtual environment instead of any other python (for example, a python from a global environment).
+一个重要的细节是，它会将虚拟环境路径放在PATH变量的开头。系统会在找到其他任何可用的Python之前先找到它。这样，当你运行python时，它会使用虚拟环境中的Python，而不是其他任何python（例如，全局环境中的python）。
+
+Activating a virtual environment also changes a couple of other things, but this is one of the most important things it does.
+激活虚拟环境还会改变其他一些事情，但这是它所做的最重要的事情之一。
+
+Checking a Virtual Environment¶ 检查虚拟环境¶
+When you check if a virtual environment is active, for example with:
+当你检查虚拟环境是否处于激活状态时，例如使用：
+
+
+Linux, macOS, Windows Bash
+Windows PowerShell
+
+Get-Command python
+
+C:\Users\user\code\awesome-project\.venv\Scripts\python
+
+restart ↻ 重启 ↻
+
+That means that the python program that will be used is the one in the virtual environment.
+这意味着将要使用的python程序是虚拟环境中的那个。
+
+You use which in Linux and macOS and Get-Command in Windows PowerShell.
+在Linux和macOS中使用which</b0，在Windows PowerShell中使用Get-Command。
+
+The way that command works is that it will go and check in the PATH environment variable, going through each path in order, looking for the program called python. Once it finds it, it will show you the path to that program.
+该命令的工作方式是，它会去检查<PATH>环境变量，按顺序遍历每个路径，寻找名为<python>的程序。一旦找到，它就会向你显示该程序的路径。
+
+The most important part is that when you call python, that is the exact "python" that will be executed.
+最重要的部分是，当你调用python时，这正是将要执行的"python"。
+
+So, you can confirm if you are in the correct virtual environment.
+因此，你可以确认自己是否处于正确的虚拟环境中。
+
+Tip 提示
+
+It's easy to activate one virtual environment, get one Python, and then go to another project.
+激活一个虚拟环境、获取一个Python很容易，然后就可以转到另一个项目。
+
+And the second project wouldn't work because you are using the incorrect Python, from a virtual environment for another project.
+第二个项目无法运行，因为你使用的是错误的Python，来自另一个项目的虚拟环境。
+
+It's useful being able to check what python is being used. 🤓
+能够查看正在使用的python版本是很有用的。🤓
+
+Why Deactivate a Virtual Environment¶
+为什么要停用虚拟环境¶
+For example, you could be working on a project philosophers-stone, activate that virtual environment, install packages and work with that environment.
+例如，你可能正在处理一个名为philosophers-stone的项目，激活该虚拟环境，安装包并使用该环境。
+
+And then you want to work on another project prisoner-of-azkaban.
+然后你想从事另一个项目《阿兹卡班的囚徒》。
+
+You go to that project: 你进入那个项目：
+
+
+cd ~/code/prisoner-of-azkaban
+
+restart ↻ 重启 ↻
+If you don't deactivate the virtual environment for philosophers-stone, when you run python in the terminal, it will try to use the Python from philosophers-stone.
+如果你不关闭philosophers-stone的虚拟环境，当你在终端中运行python时，它会尝试使用来自philosophers-stone的Python。
+
+
+cd ~/code/prisoner-of-azkaban
+
+python main.py
+
+💬 Error importing sirius, it's not installed 😱
+Traceback (most recent call last):
+    File "main.py", line 1, in 
+        import sirius
+
+restart ↻ 重启 ↻
+But if you deactivate the virtual environment and activate the new one for prisoner-of-askaban then when you run python it will use the Python from the virtual environment in prisoner-of-azkaban.
+但是如果你停用虚拟环境，并为prisoner-of-askaban激活新的虚拟环境，那么当你运行python时，它将使用prisoner-of-azkaban中虚拟环境里的Python。
+
+
+cd ~/code/prisoner-of-azkaban
+
+💬 You don't need to be in the old directory to deactivate, you can do it wherever you are, even after going to the other project 😎
+deactivate
+
+💬 Activate the virtual environment in prisoner-of-azkaban/.venv 🚀
+source .venv/bin/activate
+
+💬 Now when you run python, it will find the package sirius installed in this virtual environment ✨
+python main.py
+
+I solemnly swear 🐺
+
+restart ↻ 重启 ↻
+Alternatives¶ 替代方案¶
+This is a simple guide to get you started and teach you how everything works underneath.
+这是一份简单的入门指南，将教你了解其底层的工作原理。
+
+There are many alternatives to managing virtual environments, package dependencies (requirements), projects.
+管理虚拟环境、包依赖（需求）和项目有很多替代方案。
+
+Once you are ready and want to use a tool to manage the entire project, packages dependencies, virtual environments, etc. I would suggest you try uv.
+一旦你准备好了，并且想要使用工具来管理整个项目</b0、包依赖、虚拟环境等，我建议你试试uv。
+
+uv can do a lot of things, it can:
+uv 可以做很多事情，它能够：
+
+Install Python for you, including different versions
+为您安装Python，包括不同版本
+Manage the virtual environment for your projects
+管理项目的虚拟环境
+Install packages 安装包
+Manage package dependencies and versions for your project
+管理项目的包依赖和版本
+Make sure you have an exact set of packages and versions to install, including their dependencies, so that you can be sure that you can run your project in production exactly the same as in your computer while developing, this is called locking
+确保你有一套需要安装的精确的软件包及其版本，包括它们的依赖项，这样你才能确保项目在生产环境中运行的情况与你开发时在自己电脑上的完全一致，这被称为锁定。
+And many other things 以及许多其他事情
+Conclusion¶ 结论¶
+If you read and understood all this, now you know much more about virtual environments than many developers out there. 🤓
+如果你阅读并理解了所有这些内容，那么现在你对虚拟环境的了解已经比许多开发者都要多了。🤓
+
+Knowing these details will most probably be useful in a future time when you are debugging something that seems complex, but you will know how it all works underneath. 😎
+了解这些细节很可能在将来调试一些看似复杂的东西时会派上用场，而你会知道它的底层工作原理。😎
+
+---
 
 
 
