@@ -1038,7 +1038,175 @@ Otherwise, you should be good with the guidelines from the section above: In a h
 
 ---
 
+## 后端基础：FastAPI 快速入门——Environment Variables
 
+An environment variable (also known as "env var") is a variable that lives outside of the Python code, in the operating system, and could be read by your Python code (or by other programs as well).
+环境变量（也称为“环境变量”）是一种存在于Python代码外部、位于操作系统中的变量，可被你的Python代码（也可被其他程序）读取。
+
+### Create and Use Env Vars
+You can create and use environment variables in the shell (terminal), without needing Python:
+
+``` bash
+# Linux, macOS, Windows Bash
+# You could create an env var MY_NAME with:
+export MY_NAME="Wade Wilson"
+
+# Then you could use it with other programs, like:
+echo "Hello $MY_NAME"
+
+Hello Wade Wilson
+```
+``` bash
+# Windows PowerShell
+$Env:MY_NAME = "Wade Wilson"
+
+echo "Hello $Env:MY_NAME"
+```
+
+### Read env vars in Python
+You could also create environment variables outside of Python, in the terminal (or with any other method), and then read them in Python. For example:
+
+``` python
+import os
+
+name = os.getenv("MY_NAME", "World")
+print(f"Hello {name} from Python")
+```
+
+Tips: The second argument to os.getenv() is the default value to return. If not provided, it's None by default, here we provide "World" as the default value to use.
+
+Then you could call that Python program:
+
+``` bash
+# Linux, macOS, Windows Bash
+# Here we don't set the env var yet
+python main.py 
+
+# As we didn't set the env var, we get the default value
+> Hello World from Python
+
+# But if we create an environment variable first
+export MY_NAME="Wade Wilson"
+
+# And then call the program again
+python main.py 
+
+#  Now it can read the environment variable
+> Hello Wade Wilson from Python
+```
+
+python main.py
+``` bash
+# Windows PowerShell
+python main.py
+> Hello World from Python
+
+$Env:MY_NAME = "Wade Wilson"
+python main.py
+> Hello Wade Wilson from Python
+```
+
+As environment variables can be set outside of the code, but can be read by the code, and don't have to be stored (committed to git) with the rest of the files, it's common to use them for configurations or settings.
+
+You can also create an environment variable only for a specific program invocation, that is only available to that program, and only for its duration.
+
+To do that, create it right **before the program itself, on the same line**:
+
+``` bash
+# Create an env var MY_NAME in line for this program call
+MY_NAME="Wade Wilson" python main.py
+
+# Now it can read the environment variable
+> Hello Wade Wilson from Python
+
+# The env var no longer exists afterwards
+python main.py
+
+> Hello World from Python
+```
+
+### Types and Validation
+These environment variables can only handle text strings, as they are external to Python and have to be compatible with other programs and the rest of the system (and even with different operating systems, as Linux, Windows, macOS).
+> 这些环境变量只能处理文本字符串，因为它们在Python外部，必须与其他程序、系统的其余部分（甚至与不同的操作系统，如Linux、Windows、macOS）兼容。
+
+That means that any value read in Python from an environment variable will be a str, and any conversion to a different type or any validation has to be done in code.
+这意味着在Python中从环境变量读取的任何值都将是一个str，任何到其他类型的转换或任何验证都必须在代码中完成。
+
+### `PATH` Environment Variable
+There is a special environment variable called `PATH` that is used by the operating systems (Linux, macOS, Windows) to find programs to run.
+> 有一种名为`PATH`的特殊环境变量，操作系统（Linux、macOS、Windows）会使用它来查找要运行的程序。
+
+The value of the variable `PATH` is a long string that is made of directories separated by a colon : on Linux and macOS, and by a semicolon ; on Windows.
+> 变量PATH的值是一个长字符串，由多个目录组成，在Linux和macOS上这些目录用冒号:分隔，在Windows上则用分号;分隔。
+
+For example, the PATH environment variable could look like this:
+
+``` bash
+# Linux, macOS
+/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+```
+``` bash
+# Windows
+C:\Program Files\Python312\Scripts;C:\Program Files\Python312;C:\Windows\System32
+```
+
+This means that the system should look for programs in the directories:
+- /usr/local/bin
+- C:\Program Files\Python312\Scripts
+- ...
+
+When you type a command in the terminal, the operating system looks for the program in each of those directories listed in the `PATH` environment variable.
+> 当你在终端中输入一个命令时，操作系统会在`PATH`环境变量列出的每个目录中查找该程序。
+
+For example, when you type `python` in the terminal, the operating system looks for a program called `python` in the first directory in that list.
+> 例如，当你在终端中输入`python`时，操作系统会在该列表的第一个目录中查找名为`python`的程序。
+
+If it finds it, then it will use it. **Otherwise** it keeps looking in the other directories.
+> 如果找到了，它就会使用它。否则，它会继续在其他目录中查找。
+
+#### Installing Python and Updating the PATH
+When you install Python, you might be asked if you want to update the PATH environment variable.
+
+##### Linux, macOS
+
+Let's say you install Python and it ends up in a directory /opt/custompython/bin.
+> 假设你安装了Python，它最终位于目录/opt/custompython/bin中。
+
+If you say yes to update the PATH environment variable, then the installer will add /opt/custompython/bin to the `PATH` environment variable.
+
+It could look like this:
+
+`/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/custompython/bin`
+
+This way, when you type python in the terminal, the system will find the Python program in /opt/custompython/bin (the last directory) and use that one.
+
+So, if you type:
+``` python
+python
+```
+
+The system will find the python program in /opt/custompython/bin and run it.
+
+It would be roughly equivalent to typing:
+这大致相当于输入：
+``` python
+/opt/custompython/bin/python
+```
+
+##### Windows
+类似
+
+This information will be useful when learning about Virtual Environments.
+
+### Conclusion
+With this you should have a basic understanding of what environment variables are and how to use them in Python.
+
+You can also read more about them in the Wikipedia for Environment Variable.
+
+In many cases it's not very obvious how environment variables would be useful and applicable right away. But they keep showing up in many different scenarios when you are developing, so it's good to know about them.
+> 在很多情况下，环境变量的用途和适用性并非显而易见。但在开发过程中，它们会频繁出现在各种不同的场景中，因此了解它们是很有必要的。
+
+For example, you will need this information in the next section, about Virtual Environments.
 
 
 
