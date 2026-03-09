@@ -56,11 +56,13 @@ Next, build a practical weather forecasting agent that demonstrates key **produc
 > 对话记忆，用于类聊天交互
 6. Create and run the agent to test the fully functional agent
 > 创建并运行智能体以测试功能完备的智能体
-Let’s walk through each step:
-1
-Define the system prompt
 
-The system prompt defines your agent’s role and behavior. Keep it specific and actionable:
+### 1. Define the system prompt
+
+The system prompt defines your agent’s `role` and `behavior`. Keep it specific and actionable:
+> 系统提示定义了您的代理的角色和行为。保持它的具体和可操作：
+
+``` python
 SYSTEM_PROMPT = """You are an expert weather forecaster, who speaks in puns.
 
 You have access to two tools:
@@ -69,11 +71,17 @@ You have access to two tools:
 - get_user_location: use this to get the user's location
 
 If a user asks you for the weather, make sure you know the location. If you can tell from the question that they mean wherever they are, use the get_user_location tool to find their location."""
-2
-Create tools
+```
 
-Tools let a model interact with external systems by calling functions you define. Tools can depend on runtime context and also interact with agent memory.
-Notice below how the get_user_location tool uses runtime context:
+### 2. Create tools
+
+Tools let a model interact with **external systems** by calling functions you define. Tools can depend on **runtime context** and also interact with **agent memory**.
+> 工具允许模型通过调用你定义的函数与外部系统进行交互。工具可以依赖于运行时上下文</b1，还可以与智能体内存</b2进行交互。
+
+Notice below how the `get_user_location` tool uses runtime context:
+> 请注意下面的get_user_location工具是如何使用运行时上下文的：
+
+``` python
 from dataclasses import dataclass
 from langchain.tools import tool, ToolRuntime
 
@@ -92,11 +100,17 @@ def get_user_location(runtime: ToolRuntime[Context]) -> str:
     """Retrieve user information based on user ID."""
     user_id = runtime.context.user_id
     return "Florida" if user_id == "1" else "SF"
+```
+
 Tools should be well-documented: their name, description, and argument names become part of the model’s prompt. LangChain’s @tool decorator adds metadata and enables runtime injection with the ToolRuntime parameter.
-3
-Configure your model
+> 工具应有完善的文档说明：它们的名称、描述和参数名称会成为模型提示词的一部分。LangChain 的 @tool 会添加元数据，并支持通过 ToolRuntime 参数进行运行时注入。
+
+### 3. Configure your model
 
 Set up your language model with the right parameters for your use case:
+> 为你的使用场景设置正确参数，以配置你的语言模型：
+
+``` python
 from langchain.chat_models import init_chat_model
 
 model = init_chat_model(
@@ -105,11 +119,17 @@ model = init_chat_model(
     timeout=10,
     max_tokens=1000
 )
+```
+
 Depending on the model and provider chosen, initialization parameters may vary; refer to their reference pages for details.
-4
-Define response format
+> 根据所选的模型和提供商，初始化参数可能会有所不同；详情请参考它们的参考页面。
+
+### 4. Define response format
 
 Optionally, define a structured response format if you need the agent responses to match a specific schema.
+> 如有需要，你可以定义结构化的响应格式，以便智能体的响应符合特定的模式。
+
+``` python
 from dataclasses import dataclass
 
 # We use a dataclass here, but Pydantic models are also supported.
@@ -120,18 +140,26 @@ class ResponseFormat:
     punny_response: str
     # Any interesting information about the weather if available
     weather_conditions: str | None = None
-5
-Add memory
+```
 
+### 5. Add memory
 Add memory to your agent to maintain state across interactions. This allows the agent to remember previous conversations and context.
+> 为你的智能体添加记忆，使其能够在交互过程中保持状态。这能让智能体记住之前的对话和上下文。
+
+``` python
 from langgraph.checkpoint.memory import InMemorySaver
 
 checkpointer = InMemorySaver()
-In production, use a persistent checkpointer that saves message history to a database. See Add and manage memory for more details.
-6
-Create and run the agent
+```
 
+**In production**, use a persistent checkpointer that saves message history to a database. See Add and manage memory for more details.
+> 在生产环境中，请使用持久化检查点将消息历史记录保存到数据库中。有关更多详细信息，请参见添加和管理内存。
+
+### 6. Create and run the agent
 Now assemble your agent with all the components and run it!
+> 现在将所有组件组装到你的智能体中并运行它！
+
+``` python
 from langchain.agents.structured_output import ToolStrategy
 
 agent = create_agent(
@@ -171,12 +199,116 @@ print(response['structured_response'])
 #     punny_response="You're 'thund-erfully' welcome! It's always a 'breeze' to help you stay 'current' with the weather. I'm just 'cloud'-ing around waiting to 'shower' you with more forecasts whenever you need them. Have a 'sun-sational' day in the Florida sunshine!",
 #     weather_conditions=None
 # )
-Show Full example code
+```
+
+``` python
+# Full example code
+from dataclasses import dataclass
+
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+from langchain.tools import tool, ToolRuntime
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain.agents.structured_output import ToolStrategy
+
+
+# Define system prompt
+SYSTEM_PROMPT = """You are an expert weather forecaster, who speaks in puns.
+
+You have access to two tools:
+
+- get_weather_for_location: use this to get the weather for a specific location
+- get_user_location: use this to get the user's location
+
+If a user asks you for the weather, make sure you know the location. If you can tell from the question that they mean wherever they are, use the get_user_location tool to find their location."""
+
+# Define context schema
+@dataclass
+class Context:
+    """Custom runtime context schema."""
+    user_id: str
+
+# Define tools
+@tool
+def get_weather_for_location(city: str) -> str:
+    """Get weather for a given city."""
+    return f"It's always sunny in {city}!"
+
+@tool
+def get_user_location(runtime: ToolRuntime[Context]) -> str:
+    """Retrieve user information based on user ID."""
+    user_id = runtime.context.user_id
+    return "Florida" if user_id == "1" else "SF"
+
+# Configure model
+model = init_chat_model(
+    "claude-sonnet-4-6",
+    temperature=0
+)
+
+# Define response format
+@dataclass
+class ResponseFormat:
+    """Response schema for the agent."""
+    # A punny response (always required)
+    punny_response: str
+    # Any interesting information about the weather if available
+    weather_conditions: str | None = None
+
+# Set up memory
+checkpointer = InMemorySaver()
+
+# Create agent
+agent = create_agent(
+    model=model,
+    system_prompt=SYSTEM_PROMPT,
+    tools=[get_user_location, get_weather_for_location],
+    context_schema=Context,
+    response_format=ToolStrategy(ResponseFormat),
+    checkpointer=checkpointer
+)
+
+# Run agent
+# `thread_id` is a unique identifier for a given conversation.
+config = {"configurable": {"thread_id": "1"}}
+
+response = agent.invoke(
+    {"messages": [{"role": "user", "content": "what is the weather outside?"}]},
+    config=config,
+    context=Context(user_id="1")
+)
+
+print(response['structured_response'])
+# ResponseFormat(
+#     punny_response="Florida is still having a 'sun-derful' day! The sunshine is playing 'ray-dio' hits all day long! I'd say it's the perfect weather for some 'solar-bration'! If you were hoping for rain, I'm afraid that idea is all 'washed up' - the forecast remains 'clear-ly' brilliant!",
+#     weather_conditions="It's always sunny in Florida!"
+# )
+
+
+# Note that we can continue the conversation using the same `thread_id`.
+response = agent.invoke(
+    {"messages": [{"role": "user", "content": "thank you!"}]},
+    config=config,
+    context=Context(user_id="1")
+)
+
+print(response['structured_response'])
+# ResponseFormat(
+#     punny_response="You're 'thund-erfully' welcome! It's always a 'breeze' to help you stay 'current' with the weather. I'm just 'cloud'-ing around waiting to 'shower' you with more forecasts whenever you need them. Have a 'sun-sational' day in the Florida sunshine!",
+#     weather_conditions=None
+# )
+```
 
 To learn how to trace your agent with LangSmith, see the LangSmith documentation.
+
 Congratulations! You now have an AI agent that can:
-Understand context and remember conversations
-Use multiple tools intelligently
-Provide structured responses in a consistent format
-Handle user-specific information through context
-Maintain conversation state across interactions
+- Understand context and remember conversations
+> 理解上下文并记住对话
+- Use multiple tools intelligently
+> 智能地使用多种工具
+- Provide structured responses in a consistent format
+> 提供结构化的响应，格式保持一致
+- Handle user-specific information through context
+> 通过上下文处理用户特定信息
+- Maintain conversation state across interactions
+> 在多轮交互中保持对话状态
