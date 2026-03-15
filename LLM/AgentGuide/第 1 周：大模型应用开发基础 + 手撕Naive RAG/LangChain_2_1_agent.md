@@ -96,34 +96,186 @@ agent = create_agent(
 )
 ```
 
-Pre-bound models (models with bind_tools already called) are not supported when using structured output. If you need dynamic model selection with structured output, ensure the models passed to the middleware are not pre-bound.
-使用结构化输出时，不支持预绑定模型（已调用bind_tools的模型）。如果需要结合结构化输出进行动态模型选择，请确保传递给中间件的模型未经过预绑定。
+Pre-bound models (models with [bind_tools](https://github.com/meng-yijie1996/myNotes/blob/master/LLM/AgentGuide/LangChainReference/02_bind_tools.md) already called) are not supported when using structured output. If you need dynamic model selection with structured output, ensure the models passed to the middleware are not pre-bound.
+> 使用结构化输出时，不支持预绑定模型（已调用bind_tools的模型）。如果需要结合结构化输出进行动态模型选择，请确保传递给中间件的模型未经过预绑定。
+
+---
+
+### Why?
+在 LangChain 中，「结构化输出（Structured Output）」与「模型预绑定（如 `bind_tools()`/`bind()`）」无法兼容的核心原因是：**结构化输出需要动态调整模型的生成格式/参数，而预绑定会固化模型配置，导致格式指令失效或冲突**。下面从技术原理、核心冲突点、解决方案三个维度，帮你彻底理解这个问题：
+
+### 一、先理清核心概念（避免混淆）
+| 概念                | 核心作用                                                                 |
+|---------------------|--------------------------------------------------------------------------|
+| 模型预绑定（bind）  | 通过 `bind()`/`bind_tools()` 将工具、参数（temperature、top_p）等「固化」到模型实例中，后续调用无需重复传参 |
+| 结构化输出          | 要求模型严格按照指定 schema（如 Pydantic 类、JSON Schema）生成输出，需向模型注入「格式指令」并控制生成行为 |
+
+### 二、核心冲突：预绑定为什么会破坏结构化输出？
+#### 1. 冲突根源：预绑定固化了「生成参数/提示词」
+结构化输出的核心是**动态注入格式约束**（如「必须输出 JSON，字段为 xxx」），而预绑定会：
+- 固化模型的 `stop` 词、`temperature` 等关键参数（结构化输出需要 `temperature=0` 保证格式稳定，预绑定若设为其他值会导致格式错乱）；
+- 覆盖结构化输出的「格式指令提示词」（预绑定的 system prompt 会优先级更高，导致结构化 schema 指令被忽略）；
+- 冲突的工具调用配置（若预绑定了 `bind_tools()`，模型会优先响应工具调用格式，而非结构化输出格式）。
+
+#### 2. 技术层面的具体原因
+LangChain 实现结构化输出的核心逻辑是：
+```mermaid
+graph TD
+A[用户定义结构化Schema] --> B[生成格式指令提示词]
+B --> C[拼接至模型输入的System Prompt]
+C --> D[模型按指令生成结构化输出]
+D --> E[解析器验证/解析输出]
+```
+而预绑定（`bind()`）的逻辑是：
+```mermaid
+graph TD
+A[预绑定参数/工具] --> B[固化模型的默认生成配置]
+B --> C[所有后续调用复用该配置]
+```
+两者冲突的关键场景：
+- **场景1：预绑定的 stop 词打断结构化输出**  
+  结构化输出需要模型生成完整的 JSON 结构，但预绑定的 `stop=["\n"]` 等 stop 词会提前终止生成，导致 JSON 不完整；
+- **场景2：预绑定的工具调用格式覆盖结构化指令**  
+  若用 `bind_tools()` 预绑定了工具，模型会优先生成「工具调用格式」（如 `{"name": "xxx", "args": {}}`），而非你定义的结构化 schema（如 `{"punny_response": "", "weather": ""}`）；
+- **场景3：预绑定的 prompt 覆盖格式指令**  
+  结构化输出需要在 system prompt 中注入「格式约束指令」，但预绑定的 system prompt 会覆盖该指令，模型无法识别结构化要求。
+
+#### 3. 官方设计层面的考量
+LangChain 的结构化输出模块（如 `PydanticOutputParser`、`JsonOutputParser`）被设计为「动态适配」—— 每次调用可灵活修改 schema、格式指令，而预绑定的核心是「静态复用」，两者设计目标完全相反，因此官方未做兼容支持。
+
+### 三、直观示例：预绑定导致结构化输出失败
+#### ❶ 失败案例（预绑定 + 结构化输出）
+```python
+import os
+from langchain_community.chat_models import ChatDashScope
+from langchain_core.output_parsers import PydanticOutputParser
+from pydantic import BaseModel
+
+# 定义结构化Schema
+class WeatherResponse(BaseModel):
+    city: str
+    weather: str
+
+parser = PydanticOutputParser(pydantic_object=WeatherResponse)
+
+# 预绑定模型（固化参数）
+llm = ChatDashScope(model="qwen3.5-plus", api_key=os.getenv("DASHSCOPE_API_KEY"))
+llm_bound = llm.bind(temperature=0.7, stop=["\n"])  # 预绑定非结构化参数
+
+# 调用时注入结构化指令（会失效）
+prompt = f"告诉我sf的天气\n{parser.get_format_instructions()}"
+response = llm_bound.invoke(prompt)
+
+# 解析失败：预绑定的stop词导致JSON不完整
+try:
+    parser.parse(response.content)
+except Exception as e:
+    print("解析失败：", e)  # 输出：JSONDecodeError（因\n提前终止生成）
+```
+
+#### ❷ 成功案例（放弃预绑定 + 动态传参）
+```python
+# 不预绑定，每次调用动态传参
+response = llm.invoke(
+    prompt,
+    temperature=0,  # 结构化输出需低随机性
+    stop=None       # 取消stop词，保证JSON完整
+)
+parser.parse(response.content)  # 解析成功
+```
+
+### 四、解决方案：结构化输出的正确姿势（替代预绑定）
+既然预绑定不兼容结构化输出，推荐以下两种「既保留便捷性，又保证结构化生效」的方案：
+
+#### 方案1：封装为函数（动态传参，替代预绑定）
+将「模型初始化 + 结构化参数」封装为函数，每次调用动态传入结构化指令，兼顾便捷性和灵活性：
+```python
+def get_structured_llm(schema, temperature=0):
+    """封装结构化模型调用函数（替代预绑定）"""
+    llm = ChatDashScope(model="qwen3.5-plus", api_key=os.getenv("DASHSCOPE_API_KEY"))
+    parser = PydanticOutputParser(pydantic_object=schema)
+    # 动态生成格式指令
+    def invoke_with_schema(prompt_text):
+        full_prompt = f"{prompt_text}\n{parser.get_format_instructions()}"
+        response = llm.invoke(full_prompt, temperature=temperature)
+        return parser.parse(response.content)
+    return invoke_with_schema
+
+# 使用
+weather_parser = get_structured_llm(WeatherResponse)
+result = weather_parser("告诉我sf的天气，按JSON返回city和weather字段")
+print(result.city)  # 输出：sf
+```
+
+#### 方案2：使用 Runnable 链（LangChain 推荐）
+通过 `Runnable` 链将「提示词 + 模型 + 解析器」串联，既避免预绑定，又实现流程固化：
+```python
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+
+# 1. 定义提示词模板（包含结构化指令）
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "严格按照以下格式输出：{format_instructions}"),
+    ("user", "{input}")
+])
+
+# 2. 构建结构化链
+structured_chain = (
+    RunnablePassthrough.assign(format_instructions=parser.get_format_instructions)
+    | prompt
+    | llm  # 未预绑定的原始模型
+    | parser
+)
+
+# 3. 调用（无需重复配置）
+result = structured_chain.invoke({"input": "告诉我sf的天气"})
+```
+
+### 五、总结
+1. **核心原因**：预绑定固化模型参数/提示词，破坏结构化输出所需的「动态格式指令注入」和「生成参数调整」；
+2. **关键冲突点**：预绑定的 stop 词、工具调用格式、prompt 会覆盖/打断结构化输出的约束；
+3. **解决方案**：
+   - 放弃预绑定，改用「函数封装」或「Runnable 链」实现结构化输出；
+   - 结构化输出需保证 `temperature=0`、无冲突 stop 词、格式指令优先级最高；
+4. **官方建议**：LangChain 文档明确推荐「结构化输出使用 Runnable 链」，而非预绑定模型。
+
+简单来说：**预绑定追求「复用性」，结构化输出追求「动态适配性」，两者设计目标冲突，因此无法兼容**。采用函数/链的方式，既能实现「一次定义、多次调用」，又能保证结构化输出的有效性。
+
+---
+
 For model configuration details, see Models. For dynamic model selection patterns, see Dynamic model in middleware.
 ​
-### Tools 工具
+### Tools
 Tools give agents the ability to take actions. Agents go beyond simple model-only tool binding by facilitating:
-工具赋予智能体采取行动的能力。智能体超越了单纯的模型工具绑定，其优势在于：
-Multiple tool calls in sequence (triggered by a single prompt)
-由单个提示触发的多轮工具调用序列
-Parallel tool calls when appropriate
-在适当的时候进行并行工具调用
-Dynamic tool selection based on previous results
-基于先前结果的动态工具选择
-Tool retry logic and error handling
-工具重试逻辑和错误处理
-State persistence across tool calls 工具调用间的状态持久性
-For more information, see Tools. 有关更多信息，请参阅工具。
+> 工具赋予智能体采取行动的能力。智能体超越了单纯的模型工具绑定，其优势在于：
+
+- Multiple tool calls in sequence (triggered by a single prompt)
+> 由单个提示触发的多轮工具调用序列
+- Parallel tool calls when appropriate
+> 在适当的时候进行并行工具调用
+- Dynamic tool selection based on previous results
+> 基于先前结果的动态工具选择
+- Tool retry logic and error handling
+> 工具重试逻辑和错误处理
+- State persistence across tool calls
+> 工具调用间的状态持久性
+
+For more information, see Tools.
 ​
-Static tools 静态工具
+#### Static tools
 Static tools are defined when creating the agent and remain unchanged throughout execution. This is the most common and straightforward approach.
-静态工具在创建智能体时就已定义，并且在整个执行过程中保持不变。这是最常见且最简单直接的方法。
+> 静态工具在创建智能体时就已定义，并且在整个执行过程中保持不变。这是最常见且最简单直接的方法。
+
 To define an agent with static tools, pass a list of the tools to the agent.
-要定义一个具有静态工具的智能体，请将工具列表传递给该智能体。
-Tools can be specified as plain Python functions or
-工具可以指定为普通的Python函数或协程 工具装饰器可用于自定义工具名称、描述、参数模式和其他属性。 如果提供的工具列表为空，智能体将由单个LLM节点组成，不具备工具调用能力。 动态工具 借助动态工具，智能体可用的工具集在运行时会被修改，而非预先全部定义。并非每种工具都适用于所有情况。工具过多可能会让模型不堪重负（上下文过载）并增加错误；工具过少则会限制功能。动态工具选择能够根据认证状态、用户权限、功能标志或对话阶段调整可用的工具集。 根据工具是否提前已知，有两种方法： 筛选预先注册的工具 运行时工具注册
-coroutines 协程.
-The tool decorator can be used to customize tool names, descriptions, argument schemas, and other properties.
+> 要定义一个具有静态工具的智能体，请将工具列表传递给该智能体。
+
+Tools can be specified as **plain Python functions or coroutines**.
+> 工具可以指定为普通的Python函数或协程
+
+The `tool decorator` can be used to customize tool names, descriptions, argument schemas, and other properties.
 工具装饰器可用于自定义工具名称、描述、参数模式和其他属性。
+
+``` python
 from langchain.tools import tool
 from langchain.agents import create_agent
 
@@ -139,28 +291,27 @@ def get_weather(location: str) -> str:
     return f"Weather in {location}: Sunny, 72°F"
 
 agent = create_agent(model, tools=[search, get_weather])
+```
+
 If an empty tool list is provided, the agent will consist of a single LLM node without tool-calling capabilities.
-如果提供的工具列表为空，智能体将由一个不具备工具调用能力的单一LLM节点组成。
+> 如果提供的工具列表为空，智能体将由一个不具备工具调用能力的单一LLM节点组成。
 ​
-Dynamic tools 动态工具
-With dynamic tools, the set of tools available to the agent is modified at runtime rather than defined all upfront. Not every tool is appropriate for every situation. Too many tools may overwhelm the model (overload context) and increase errors; too few limit capabilities. Dynamic tool selection enables adapting the available toolset based on authentication state, user permissions, feature flags, or conversation stage.
-借助动态工具，智能体可用的工具集是在运行时修改的，而非预先全部定义好。并非每种工具都适用于所有情况。工具过多可能会让模型不堪重负（上下文过载）并增加错误；工具过少则会限制功能。动态工具选择能够根据认证状态、用户权限、功能标志或对话阶段来调整可用的工具集。
-There are two approaches depending on whether tools are known ahead of time:
-根据工具是否提前已知，有两种方法：
-Filtering pre-registered tools
-筛选预先注册的工具
-Runtime tool registration
-运行时工具注册
-When all possible tools are known at agent creation time, you can pre-register them and dynamically filter which ones are exposed to the model based on state, permissions, or context.
-当所有可能的工具在智能体创建时都已知晓，你可以预先注册这些工具，并根据状态、权限或上下文动态筛选哪些工具对模型开放。
-State
-状态
-Store
-存储
-Runtime Context
-运行时上下文
+#### Dynamic tools
+With dynamic tools, the set of tools available to the agent is modified at runtime rather than defined all upfront. Not every tool is appropriate for every situation. **Too many** tools may overwhelm the model (overload context) and increase errors; **too few** limit capabilities. Dynamic tool selection enables adapting the available toolset based on authentication state, user permissions, feature flags, or conversation stage.
+> 借助动态工具，智能体可用的工具集是在运行时可修改的，而非预先全部定义好。并非每种工具都适用于所有情况。工具过多可能会让模型不堪重负（上下文过载）并增加错误；工具过少则会限制功能。动态工具选择能够根据认证状态、用户权限、功能标志或对话阶段来调整可用的工具集。
+
+There are two approaches depending on **whether tools are known ahead of time**:
+> 根据工具是否提前已知，有两种方法：
+
+##### Filtering pre-registered tools 筛选预先注册的工具
+When all possible tools are known at agent creation time, you can pre-register them and dynamically filter which ones are exposed to the model based on `state`, `permissions`, or `context`.
+> 当所有可能的工具在智能体创建时都已知晓，你可以预先注册这些工具，并根据状态、权限或上下文动态筛选哪些工具对模型开放。
+
+###### State
 Enable advanced tools only after certain conversation milestones:
-仅在达到特定对话里程碑后启用高级工具：
+> 仅在达到特定对话里程碑后启用高级工具：
+
+``` python
 from langchain.agents import create_agent
 from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResponse
 from typing import Callable
@@ -173,9 +324,11 @@ def state_based_tools(
     """Filter tools based on conversation State."""
     # Read from State: check if user has authenticated
     state = request.state
+    # NOTE1: 从state中获取是否得到授权
     is_authenticated = state.get("authenticated", False)
     message_count = len(state["messages"])
 
+    # NOTE2: 根据是否得到授权，决定模型使用哪些工具
     # Only enable sensitive tools after authentication
     if not is_authenticated:
         tools = [t for t in request.tools if t.name.startswith("public_")]
@@ -192,21 +345,179 @@ agent = create_agent(
     tools=[public_search, private_search, advanced_search],
     middleware=[state_based_tools]
 )
-This approach is best when: 以下情况下，此方法效果最佳：
-All possible tools are known at compile/startup time
-所有可能的工具在编译/启动时都是已知的
-You want to filter based on permissions, feature flags, or conversation state
-你希望根据权限、功能标志或对话状态进行筛选
-Tools are static but their availability is dynamic
-工具是静态的，但其可用性是动态的
-See Dynamically selecting tools for more examples.
-有关更多示例，请参见动态选择工具。
-To learn more about tools, see Tools.
-要了解有关工具的更多信息，请参见工具。
+```
+
+###### Store
+Filter tools based on user preferences or feature flags in Store:
+> 在存储中根据用户偏好或feature标志筛选工具：
+
+``` python
+from dataclasses import dataclass
+from langchain.agents import create_agent
+from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResponse
+from typing import Callable
+from langgraph.store.memory import InMemoryStore
+
+@dataclass
+class Context:
+    user_id: str
+
+@wrap_model_call
+def store_based_tools(
+    request: ModelRequest,
+    handler: Callable[[ModelRequest], ModelResponse]
+) -> ModelResponse:
+    """Filter tools based on Store preferences."""
+    user_id = request.runtime.context.user_id
+
+    # Read from Store: get user's enabled features
+    store = request.runtime.store
+    # NOTE1: 从store中获取features
+    feature_flags = store.get(("features",), user_id)
+
+    # NOTE2: 根据feature，过滤工具
+    if feature_flags:
+        enabled_features = feature_flags.value.get("enabled_tools", [])
+        # Only include tools that are enabled for this user
+        tools = [t for t in request.tools if t.name in enabled_features]
+        request = request.override(tools=tools)
+
+    return handler(request)
+
+agent = create_agent(
+    model="gpt-4.1",
+    tools=[search_tool, analysis_tool, export_tool],
+    middleware=[store_based_tools],
+    context_schema=Context,
+    store=InMemoryStore()
+)
+```
+
+###### Runtime Context
+Filter tools based on user permissions from Runtime Context:
+> 根据运行时上下文中的用户权限过滤工具：
+
+``` python
+from dataclasses import dataclass
+from langchain.agents import create_agent
+from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResponse
+from typing import Callable
+
+@dataclass
+class Context:
+    user_role: str
+
+@wrap_model_call
+def context_based_tools(
+    request: ModelRequest,
+    handler: Callable[[ModelRequest], ModelResponse]
+) -> ModelResponse:
+    """Filter tools based on Runtime Context permissions."""
+    # Note1: Read from Runtime Context: get user role
+    if request.runtime is None or request.runtime.context is None:
+        # If no context provided, default to viewer (most restrictive)
+        user_role = "viewer"
+    else:
+        user_role = request.runtime.context.user_role
+
+    # Note2: 根据角色，过滤要使用的工具
+    if user_role == "admin":
+        # Admins get all tools
+        pass
+    elif user_role == "editor":
+        # Editors can't delete
+        tools = [t for t in request.tools if t.name != "delete_data"]
+        request = request.override(tools=tools)
+    else:
+        # Viewers get read-only tools
+        tools = [t for t in request.tools if t.name.startswith("read_")]
+        request = request.override(tools=tools)
+
+    return handler(request)
+
+agent = create_agent(
+    model="gpt-4.1",
+    tools=[read_data, write_data, delete_data],
+    middleware=[context_based_tools],
+    context_schema=Context
+)
+```
+
+This approach is best when:
+- All possible tools are known at compile/startup time
+> 所有可能的工具在编译/启动时都是已知的
+- You want to filter based on permissions, feature flags, or conversation state
+> 你希望根据权限、功能标志或对话状态进行筛选
+- Tools are static but their availability is dynamic
+> 工具是静态的，但其可用性是动态的
+
+##### Runtime tool registration 运行时工具注册
+When tools are discovered or created at runtime (e.g., loaded from an MCP server, generated based on user data, or fetched from a remote registry), you need to both register the tools and handle their execution dynamically.
+> 当工具在运行时被发现或创建（例如，从MCP服务器加载、基于用户数据生成或从远程注册表获取），你需要既注册这些工具，又动态处理它们的执行。
+
+This requires two middleware hooks:
+- 1.`wrap_model_call` - Add the dynamic tools to the request
+> 向请求添加动态工具
+- 2.`wrap_tool_call` - Handle execution of the dynamically added tools
+> 处理动态添加工具的执行
+
+``` python
+from langchain.tools import tool
+from langchain.agents import create_agent
+from langchain.agents.middleware import AgentMiddleware, ModelRequest, ToolCallRequest
+
+# A tool that will be added dynamically at runtime
+@tool
+def calculate_tip(bill_amount: float, tip_percentage: float = 20.0) -> str:
+    """Calculate the tip amount for a bill."""
+    tip = bill_amount * (tip_percentage / 100)
+    return f"Tip: ${tip:.2f}, Total: ${bill_amount + tip:.2f}"
+
+class DynamicToolMiddleware(AgentMiddleware):
+    """Middleware that registers and handles dynamic tools."""
+
+    def wrap_model_call(self, request: ModelRequest, handler):
+        # Add dynamic tool to the request
+        # This could be loaded from an MCP server, database, etc.
+        updated = request.override(tools=[*request.tools, calculate_tip])
+        return handler(updated)
+
+    def wrap_tool_call(self, request: ToolCallRequest, handler):
+        # Handle execution of the dynamic tool
+        if request.tool_call["name"] == "calculate_tip":
+            return handler(request.override(tool=calculate_tip))
+        return handler(request)
+
+agent = create_agent(
+    model="gpt-4o",
+    tools=[get_weather],  # Only static tools registered here
+    middleware=[DynamicToolMiddleware()],
+)
+
+# The agent can now use both get_weather AND calculate_tip
+result = agent.invoke({
+    "messages": [{"role": "user", "content": "Calculate a 20% tip on $85"}]
+})
+```
+
+This approach is best when: 以下情况最适合采用这种方法：
+- Tools are discovered at runtime (e.g., from an MCP server)
+> 工具在运行时被发现（例如，从MCP服务器）
+- Tools are generated dynamically based on user data or configuration
+> 工具会根据用户数据或配置动态生成
+- You’re integrating with external tool registries
+> 你正在与外部工具注册表集成
+
+The `wrap_tool_call` hook is required for runtime-registered tools because the agent needs to know how to execute tools that weren’t in the original tool list. Without it, the agent won’t know how to invoke the dynamically added tool.
+> wrap_tool_call钩子对于运行时注册的工具是必需的，因为智能体需要知道如何执行那些不在原始工具列表中的工具。如果没有它，智能体将不知道如何调用动态添加的工具。
+
+
 ​
-Tool error handling 工具错误处理
-To customize how tool errors are handled, use the @wrap_tool_call decorator to create middleware:
-要自定义工具错误的处理方式，请使用@wrap_tool_call装饰器来创建中间件：
+#### Tool error handling
+To customize how tool errors are handled, use the `@wrap_tool_call` decorator to create middleware:
+> 要自定义工具错误的处理方式，请使用@wrap_tool_call装饰器来创建中间件：
+
+``` python
 from langchain.agents import create_agent
 from langchain.agents.middleware import wrap_tool_call
 from langchain.messages import ToolMessage
@@ -229,8 +540,12 @@ agent = create_agent(
     tools=[search, get_weather],
     middleware=[handle_tool_errors]
 )
+```
+
 The agent will return a ToolMessage with the custom error message when a tool fails:
-当工具失败时，智能体将返回一条包含自定义错误消息的ToolMessage：
+> 当工具失败时，智能体将返回一条包含自定义错误消息的ToolMessage：
+
+``` json
 [
     ...
     ToolMessage(
@@ -239,8 +554,9 @@ The agent will return a ToolMessage with the custom error message when a tool fa
     ),
     ...
 ]
+```
 ​
-Tool use in the ReAct loop ReAct循环中的工具使用
+#### Tool use in the ReAct loop
 Agents follow the ReAct (“Reasoning + Acting”) pattern, alternating between brief reasoning steps with targeted tool calls and feeding the resulting observations into subsequent decisions until they can deliver a final answer.
 智能体遵循ReAct（“推理+行动”）模式，在简短的推理步骤与有针对性的工具调用之间交替进行，并将产生的观察结果纳入后续决策，直至能够给出最终答案。
 Example of ReAct loop ReAct循环示例
