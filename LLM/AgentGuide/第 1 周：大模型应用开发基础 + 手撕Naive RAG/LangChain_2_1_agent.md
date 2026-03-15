@@ -915,5 +915,6 @@ Middleware provides powerful extensibility for customizing agent behavior at dif
 
 Middleware integrates seamlessly into the agent’s execution, allowing you to intercept and modify data flow at key points without changing the core agent logic.
 > 中间件可无缝集成到智能体的执行过程中，让您能够在关键节点拦截和修改数据流，而无需更改智能体的核心逻辑。
-For comprehensive middleware documentation including decorators like @before_model, @after_model, and @wrap_tool_call, see Middleware.
-有关包含@before_model、@after_model和@wrap_tool_call等装饰器在内的完整中间件文档，请参阅中间件。
+
+For comprehensive middleware documentation including decorators like `@before_model`, `@after_model`, and `@wrap_tool_call`, see Middleware.
+> 有关包含@before_model、@after_model和@wrap_tool_call等装饰器在内的完整中间件文档，请参阅中间件。
