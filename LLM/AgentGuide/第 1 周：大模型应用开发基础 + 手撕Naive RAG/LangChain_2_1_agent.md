@@ -557,23 +557,88 @@ The agent will return a ToolMessage with the custom error message when a tool fa
 ```
 ​
 #### Tool use in the ReAct loop
-Agents follow the ReAct (“Reasoning + Acting”) pattern, alternating between brief reasoning steps with targeted tool calls and feeding the resulting observations into subsequent decisions until they can deliver a final answer.
-智能体遵循ReAct（“推理+行动”）模式，在简短的推理步骤与有针对性的工具调用之间交替进行，并将产生的观察结果纳入后续决策，直至能够给出最终答案。
-Example of ReAct loop ReAct循环示例
+Agents follow the **ReAct** (“Reasoning + Acting”) pattern, alternating between brief reasoning steps with targeted tool calls and feeding the resulting observations into subsequent decisions until they can deliver a final answer.
+> 智能体遵循ReAct（“推理+行动”）模式，在简短的推理步骤与有针对性的工具调用之间交替进行，并将产生的观察结果纳入后续决策，直至能够给出最终答案。
 
+Example of ReAct loop
+**Prompt**: Identify the current most popular wireless headphones and verify availability.
+> 找出当前最受欢迎的无线耳机并确认其可用性。
+
+``` bash
+================================ Human Message =================================
+
+Find the most popular wireless headphones right now and check if they're in stock
+```
+
+**Reasoning**: “Popularity is time-sensitive, I need to use the provided search tool.”
+> 流行度具有时间敏感性，我需要使用提供的搜索工具。
+
+**Acting**: Call search_products("wireless headphones")
+
+``` bash
+================================== Ai Message ==================================
+Tool Calls:
+  search_products (call_abc123)
+ Call ID: call_abc123
+  Args:
+    query: wireless headphones
+```
+
+``` bash
+================================= Tool Message =================================
+
+Found 5 products matching "wireless headphones". Top 5 results: WH-1000XM5, ...
+```
+
+**Reasoning**: “I need to confirm availability for the top-ranked item before answering.”
+> 我需要先确认排名最高的物品是否有货，然后再回答。
+
+**Acting**: Call check_inventory("WH-1000XM5")
+
+``` bash
+================================== Ai Message ==================================
+Tool Calls:
+  check_inventory (call_def456)
+ Call ID: call_def456
+  Args:
+    product_id: WH-1000XM5
+```
+
+``` bash
+================================= Tool Message =================================
+
+Product WH-1000XM5: 10 units in stock
+```
+
+**Reasoning**: “I have the most popular model and its stock status. I can now answer the user’s question.”
+
+**Acting**: Produce final answer
+
+``` bash
+================================== Ai Message ==================================
+
+I found wireless headphones (model WH-1000XM5) with 10 units in stock...
+```
 ​
-System prompt 系统提示
-You can shape how your agent approaches tasks by providing a prompt. The system_prompt parameter can be provided as a string:
-你可以通过提供提示词来塑造你的智能体处理任务的方式。system_prompt参数可以作为字符串提供：
+### System prompt
+You can shape how your agent approaches tasks by providing a prompt. The `system_prompt` parameter can be provided as a string:
+> 你可以通过提供提示词来塑造你的智能体处理任务的方式。
+
+``` python
 agent = create_agent(
     model,
     tools,
     system_prompt="You are a helpful assistant. Be concise and accurate."
 )
-When no system_prompt is provided, the agent will infer its task from the messages directly.
-当未提供system_prompt时，智能体将直接从消息中推断其任务。
-The system_prompt parameter accepts either a str or a SystemMessage. Using a SystemMessage gives you more control over the prompt structure, which is useful for provider-specific features like Anthropic’s prompt caching:
-system_prompt参数接受str或SystemMessage</b3作为输入。使用SystemMessage可以让你更好地控制提示词结构，这对于特定提供商的功能（如Anthropic的提示词缓存）很有用：
+```
+
+When no `system_prompt` is provided, the agent will infer its task from the messages directly.
+> 当未提供system_prompt时，智能体将直接从消息中推断其任务。
+
+The `system_prompt` parameter accepts either a `str` or a `SystemMessage`. Using a SystemMessage gives you more control over the prompt structure, which is useful for provider-specific features like Anthropic’s prompt caching:
+> system_prompt参数接受str或SystemMessage</b3作为输入。使用SystemMessage可以让你更好地控制提示词结构，这对于特定提供商的功能（如Anthropic的提示词缓存）很有用：
+
+``` python
 from langchain.agents import create_agent
 from langchain.messages import SystemMessage, HumanMessage
 
@@ -587,8 +652,8 @@ literary_agent = create_agent(
             },
             {
                 "type": "text",
-                "text": "<the entire contents of 'Pride and Prejudice'>",
-                "cache_control": {"type": "ephemeral"}
+                "text": "<the entire contents of 'Pride and Prejudice'>", # 《傲慢与偏见》
+                "cache_control": {"type": "ephemeral"}   # 
             }
         ]
     )
@@ -597,14 +662,19 @@ literary_agent = create_agent(
 result = literary_agent.invoke(
     {"messages": [HumanMessage("Analyze the major themes in 'Pride and Prejudice'.")]}
 )
-The cache_control field with {"type": "ephemeral"} tells Anthropic to cache that content block, reducing latency and costs for repeated requests that use the same system prompt.
-带有{"type": "ephemeral"}的cache_control字段会告知Anthropic缓存该内容块，从而减少使用相同系统提示的重复请求的延迟并降低成本。
+```
+
+The `cache_control` field with `{"type": "ephemeral"}` tells Anthropic to cache that content block, reducing latency and costs for repeated requests that use the same system prompt.
+> 带有{"type": "ephemeral"}的cache_control字段会告知Anthropic缓存该内容块，从而减少使用相同系统提示的重复请求的延迟并降低成本。
 ​
-Dynamic system prompt 动态系统提示
+#### Dynamic system prompt
 For more advanced use cases where you need to modify the system prompt based on runtime context or agent state, you can use middleware.
-对于需要根据运行时上下文或智能体状态修改系统提示的更高级用例，您可以使用中间件。
-The @dynamic_prompt decorator creates middleware that generates system prompts based on the model request:
-@dynamic_prompt装饰器会创建中间件，该中间件根据模型请求生成系统提示。
+> 对于需要根据运行时上下文或智能体状态修改系统提示的更高级用例，您可以使用中间件。
+
+The `@dynamic_prompt` decorator creates middleware that generates system prompts based on the model request:
+> @dynamic_prompt装饰器会创建中间件，该中间件根据模型请求生成系统提示。
+
+``` python
 from typing import TypedDict
 
 from langchain.agents import create_agent
@@ -620,6 +690,7 @@ def user_role_prompt(request: ModelRequest) -> str:
     user_role = request.runtime.context.get("user_role", "user")
     base_prompt = "You are a helpful assistant."
 
+    # 根据role，设置prompt
     if user_role == "expert":
         return f"{base_prompt} Provide detailed technical responses."
     elif user_role == "beginner":
@@ -637,44 +708,52 @@ agent = create_agent(
 # The system prompt will be set dynamically based on context
 result = agent.invoke(
     {"messages": [{"role": "user", "content": "Explain machine learning"}]},
+    # 设置role
     context={"user_role": "expert"}
 )
-For more details on message types and formatting, see Messages. For comprehensive middleware documentation, see Middleware.
-有关消息类型和格式的更多详细信息，请参阅消息。有关全面的中间件文档，请参阅中间件。
+```
 ​
-Name 名称
-Set an optional name for the agent. This is used as the node identifier when adding the agent as a subgraph in multi-agent systems:
-为智能体设置一个可选的name。在多智能体系统中将该智能体作为子图添加时，此名称会用作节点标识符：
+### Name
+Set an optional name for the agent. This is used as the **node identifier** when adding the agent as a subgraph in multi-agent systems:
+> 为智能体设置一个可选的name。在多智能体系统中将该智能体作为子图添加时，此名称会用作节点标识符：
+
+``` python
 agent = create_agent(
     model,
     tools,
     name="research_assistant"
 )
-Prefer snake_case for agent names (e.g., research_assistant instead of Research Assistant). Some model providers reject names containing spaces or special characters with errors. Using alphanumeric characters, underscores, and hyphens only ensures compatibility across all providers. The same applies to tool names.
-智能体名称最好使用snake_case（例如，使用research_assistant而不是Research Assistant）。一些模型提供商不接受包含空格或特殊字符的名称，并会报错。仅使用字母数字字符、下划线和连字符可以确保在所有提供商处都能兼容。这一点同样适用于工具名称。
+```
+
+Prefer `snake_case` for agent names (e.g., research_assistant instead of Research Assistant). Some model providers reject names containing spaces or special characters with errors. Using alphanumeric characters, underscores, and hyphens only ensures compatibility across all providers. The same applies to tool names.
+> 智能体名称最好使用`蛇形命名法`（例如，使用research_assistant而不是Research Assistant）。一些模型提供商不接受包含空格或特殊字符的名称，并会报错。仅使用字母数字字符、下划线和连字符可以确保在所有提供商处都能兼容。这一点同样适用于工具名称。
 ​
-Invocation 调用
-You can invoke an agent by passing an update to its State. All agents include a sequence of messages in their state; to invoke the agent, pass a new message:
-你可以通过向智能体的State传递更新来调用它。所有智能体的状态中都包含一个消息序列；要调用智能体，请传递一条新消息：
+## Invocation
+You can invoke an agent by **passing an update** to its `State`. All agents include a sequence of messages in their state; to invoke the agent, pass a new message:
+> 你可以通过向智能体的State传递更新来调用它。所有智能体的状态中都包含一个消息序列；要调用智能体，请传递一条新消息：
+
+``` python
 result = agent.invoke(
     {"messages": [{"role": "user", "content": "What's the weather in San Francisco?"}]}
 )
+```
+
 For streaming steps and / or tokens from the agent, refer to the streaming guide.
-有关从智能体流式传输步骤和/或令牌的内容，请参考流式传输指南。
-Otherwise, the agent follows the LangGraph Graph API and supports all associated methods, such as stream and invoke.
-否则，该智能体遵循LangGraph 图API，并支持所有相关方法，例如stream和invoke。
-Use LangSmith to trace, debug, and evaluate your agents.
-使用LangSmith来跟踪、调试和评估你的智能体。
+> 有关从智能体流式传输步骤和/或令牌的内容，请参考流式传输指南。
+
+Otherwise, the agent follows the LangGraph Graph API and supports all associated methods, such as `stream` and `invoke`.
+> 否则，该智能体遵循LangGraph 图API，并支持所有相关方法，例如stream和invoke。
 ​
-Advanced concepts 高级概念
+## Advanced concepts
+​### Structured output
+In some situations, you may want the agent to return an output in a specific format. LangChain provides strategies for structured output via the `response_format` parameter.
+> 在某些情况下，你可能希望智能体以特定格式返回输出。LangChain 通过 response_format 参数提供了结构化输出的策略。
 ​
-Structured output 结构化输出
-In some situations, you may want the agent to return an output in a specific format. LangChain provides strategies for structured output via the response_format parameter.
-在某些情况下，你可能希望智能体以特定格式返回输出。LangChain 通过 response_format 参数提供了结构化输出的策略。
-​
-ToolStrategy 工具策略
-ToolStrategy uses artificial tool calling to generate structured output. This works with any model that supports tool calling. ToolStrategy should be used when provider-native structured output (via ProviderStrategy) is not available or reliable.
-ToolStrategy使用人工工具调用生成结构化输出。这适用于任何支持工具调用的模型。当原生提供商的结构化输出（通过ProviderStrategy）不可用或不可靠时，应使用ToolStrategy。
+#### ToolStrategy
+`ToolStrategy` uses artificial tool calling to generate structured output. This works with any model that supports tool calling. `ToolStrategy` should be used when provider-native structured output (via `ProviderStrategy`) is not available or reliable.
+> ToolStrategy使用人工工具调用生成结构化输出。这适用于任何支持工具调用的模型。当原生提供商的结构化输出（通过ProviderStrategy）不可用或不可靠时，应使用ToolStrategy。
+
+``` python
 from pydantic import BaseModel
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
@@ -688,6 +767,8 @@ class ContactInfo(BaseModel):
 agent = create_agent(
     model="gpt-4.1-mini",
     tools=[search_tool],
+    # Note1: via the response_format parameter
+    # Note2: uses artificial tool calling
     response_format=ToolStrategy(ContactInfo)
 )
 
@@ -697,36 +778,42 @@ result = agent.invoke({
 
 result["structured_response"]
 # ContactInfo(name='John Doe', email='john@example.com', phone='(555) 123-4567')
+```
 ​
-ProviderStrategy 提供商策略
-ProviderStrategy uses the model provider’s native structured output generation. This is more reliable but only works with providers that support native structured output:
-ProviderStrategy 使用模型提供商的原生结构化输出生成。这种方式更可靠，但仅适用于支持原生结构化输出的提供商：
+#### ProviderStrategy
+`ProviderStrategy` uses the model provider’s native structured output generation. This is more reliable but only works with providers that support native structured output:
+> ProviderStrategy 使用模型提供商的原生结构化输出生成。这种方式更可靠，但仅适用于支持原生结构化输出的提供商：
+
+``` python
 from langchain.agents.structured_output import ProviderStrategy
 
 agent = create_agent(
     model="gpt-4.1",
     response_format=ProviderStrategy(ContactInfo)
 )
+```
+
 As of langchain 1.0, simply passing a schema (e.g., response_format=ContactInfo) will default to ProviderStrategy if the model supports native structured output. It will fall back to ToolStrategy otherwise.
-在langchain 1.0中，只需传递一个模式（例如，response_format=ContactInfo），如果模型支持原生结构化输出，将默认使用ProviderStrategy；否则，将回退到ToolStrategy。
-To learn about structured output, see Structured output.
-要了解结构化输出，请参阅结构化输出。
+> 在langchain 1.0中，只需传递一个模式（例如，response_format=ContactInfo），如果模型支持原生结构化输出，将默认使用ProviderStrategy；否则，将回退到ToolStrategy。
 ​
-Memory 记忆
-Agents maintain conversation history automatically through the message state. You can also configure the agent to use a custom state schema to remember additional information during the conversation.
-智能体通过消息状态自动保存对话历史。你也可以配置智能体使用自定义状态模式，以在对话过程中记住更多信息。
-Information stored in the state can be thought of as the short-term memory of the agent:
-存储在状态中的信息可以被视为智能体的短期记忆：
-Custom state schemas must extend AgentState as a TypedDict.
-自定义状态模式必须作为TypedDict扩展AgentState。
+### Memory
+Agents maintain conversation history automatically through the **message state**. You can also configure the agent to use a **custom state schema** to remember additional information during the conversation.
+> 智能体通过消息状态自动保存对话历史。你也可以配置智能体使用自定义状态模式，以在对话过程中记住更多信息。
+
+Information stored in the state can be thought of as the `short-term memory` of the agent:
+> 存储在状态中的信息可以被视为智能体的短期记忆：
+
+Custom state schemas must extend `AgentState` as a `TypedDict`.
+
 There are two ways to define custom state:
-定义自定义状态有两种方式：
-Via middleware (preferred) 通过中间件（首选）
-Via state_schema on create_agent 通过 state_schema 在 create_agent 上
+- 1.Via `middleware` (preferred)
+- 2.Via `state_schema` on `create_agent`
 ​
-Defining state via middleware 通过中间件定义状态
-Use middleware to define custom state when your custom state needs to be accessed by specific middleware hooks and tools attached to said middleware.
+#### Defining state via middleware
+Use middleware to define custom state when your custom state needs to **be accessed by specific middleware hooks and tools attached to said middleware.**
 当你的自定义状态需要被特定的中间件钩子和附加到该中间件的工具访问时，请使用中间件来定义自定义状态。
+
+``` python
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
 from typing import Any
@@ -745,18 +832,22 @@ class CustomMiddleware(AgentMiddleware):
 agent = create_agent(
     model,
     tools=tools,
+    # Note1: Via middleware
     middleware=[CustomMiddleware()]
 )
 
 # The agent can now track additional state beyond messages
 result = agent.invoke({
     "messages": [{"role": "user", "content": "I prefer technical explanations"}],
+    # Note2: define custom state
     "user_preferences": {"style": "technical", "verbosity": "detailed"},
 })
 ​
-Defining state via state_schema 通过state_schema定义状态
+#### Defining state via state_schema
 Use the state_schema parameter as a shortcut to define custom state that is only used in tools.
-使用state_schema参数作为快捷方式来定义仅在工具中使用的自定义状态。
+> 使用state_schema参数作为快捷方式来定义仅在工具中使用的自定义状态。
+
+``` python
 from langchain.agents import AgentState
 
 
@@ -766,25 +857,31 @@ class CustomState(AgentState):
 agent = create_agent(
     model,
     tools=[tool1, tool2],
+    # Note1: via state_schema
     state_schema=CustomState
 )
 # The agent can now track additional state beyond messages
 result = agent.invoke({
     "messages": [{"role": "user", "content": "I prefer technical explanations"}],
+    # Note2: define custom state
     "user_preferences": {"style": "technical", "verbosity": "detailed"},
 })
-As of langchain 1.0, custom state schemas must be TypedDict types. Pydantic models and dataclasses are no longer supported. See the v1 migration guide for more details.
-自langchain 1.0起，自定义状态模式必须为TypedDict类型。Pydantic模型和数据类不再受支持。有关更多详细信息，请参阅v1迁移指南。
-Defining custom state via middleware is preferred over defining it via state_schema on create_agent because it allows you to keep state extensions conceptually scoped to the relevant middleware and tools.
-通过中间件定义自定义状态比在state_schema上通过create_agent定义更可取，因为它允许你将状态扩展从概念上限定在相关的中间件和工具范围内。
+```
+
+As of langchain 1.0, custom state schemas must be `TypedDict` types. Pydantic models and dataclasses are no longer supported. See the v1 migration guide for more details.
+> 自langchain 1.0起，自定义状态模式必须为TypedDict类型。Pydantic模型和数据类不再受支持。有关更多详细信息，请参阅v1迁移指南。
+
+Defining custom state via middleware is preferred over defining it via state_schema on create_agent because it allows you to keep state extensions conceptually **scoped** to the relevant middleware and tools.
+> 通过中间件定义自定义状态比在state_schema上通过create_agent定义更可取，因为它允许你将状态扩展从概念上限定在相关的中间件和工具范围内。
+
 state_schema is still supported for backwards compatibility on create_agent.
-为了向后兼容，state_schema在create_agent上仍然受支持。
-To learn more about memory, see Memory. For information on implementing long-term memory that persists across sessions, see Long-term memory.
-要了解更多关于记忆的信息，请参阅记忆。有关实现跨会话持久化的长期记忆的信息，请参阅长期记忆。
+> 为了向后兼容，state_schema在create_agent上仍然受支持。
 ​
-Streaming 流式传输
-We’ve seen how the agent can be called with invoke to get a final response. If the agent executes multiple steps, this may take a while. To show intermediate progress, we can stream back messages as they occur.
-我们已经了解到如何使用invoke调用智能体以获取最终响应。如果智能体执行多个步骤，这可能需要一段时间。为了展示中间进度，我们可以在消息出现时将其流式返回。
+### Streaming
+We’ve seen how the agent can be called with `invoke` to get a final response. If the agent executes multiple steps, this may take a while. To **show intermediate progress**, we can stream back messages as they occur.
+> 我们已经了解到如何使用invoke调用智能体以获取最终响应。如果智能体执行多个步骤，这可能需要一段时间。为了展示中间进度，我们可以在消息出现时将其流式返回。
+
+``` python
 from langchain.messages import AIMessage, HumanMessage
 
 for chunk in agent.stream({
@@ -799,23 +896,24 @@ for chunk in agent.stream({
             print(f"Agent: {latest_message.content}")
     elif latest_message.tool_calls:
         print(f"Calling tools: {[tc['name'] for tc in latest_message.tool_calls]}")
-For more details on streaming, see Streaming.
-有关流式传输的更多详细信息，请参见流式传输。
+```
 ​
-Middleware 中间件
+### Middleware
 Middleware provides powerful extensibility for customizing agent behavior at different stages of execution. You can use middleware to:
-中间件为在执行的不同阶段自定义智能体行为提供了强大的扩展性。您可以使用中间件来：
-Process state before the model is called (e.g., message trimming, context injection)
-在调用模型之前处理状态（例如，消息截断、上下文注入）
-Modify or validate the model’s response (e.g., guardrails, content filtering)
-修改或验证模型的响应（例如，安全护栏、内容过滤）
-Handle tool execution errors with custom logic
-用自定义逻辑处理工具执行错误
-Implement dynamic model selection based on state or context
-基于状态或上下文实现动态模型选择
-Add custom logging, monitoring, or analytics
-添加自定义日志记录、监控或分析
+> 中间件为在执行的不同阶段自定义智能体行为提供了强大的扩展性。您可以使用中间件来：
+
+- Process state before the model is called (e.g., message trimming, context injection)
+> 在调用模型之前处理状态（例如，消息截断、上下文注入）
+- Modify or validate the model’s response (e.g., guardrails, content filtering)
+> 修改或验证模型的响应（例如，安全护栏、内容过滤）
+- Handle tool execution errors with custom logic
+> 用自定义逻辑处理工具执行错误
+- Implement dynamic model selection based on state or context
+> 基于状态或上下文实现动态模型选择
+- Add custom logging, monitoring, or analytics
+> 添加自定义日志记录、监控或分析
+
 Middleware integrates seamlessly into the agent’s execution, allowing you to intercept and modify data flow at key points without changing the core agent logic.
-中间件可无缝集成到智能体的执行过程中，让您能够在关键节点拦截和修改数据流，而无需更改智能体的核心逻辑。
+> 中间件可无缝集成到智能体的执行过程中，让您能够在关键节点拦截和修改数据流，而无需更改智能体的核心逻辑。
 For comprehensive middleware documentation including decorators like @before_model, @after_model, and @wrap_tool_call, see Middleware.
 有关包含@before_model、@after_model和@wrap_tool_call等装饰器在内的完整中间件文档，请参阅中间件。
