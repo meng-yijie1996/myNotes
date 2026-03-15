@@ -3,7 +3,7 @@
 Agents combine **language models** with **tools** to create systems that can reason about tasks, decide which tools to use, and iteratively work towards solutions.
 > 智能体将语言模型与工具相结合，创建出能够对任务进行推理、决定使用哪些工具并迭代地朝着解决方案努力的系统。
 
-`create_agent` provides a production-ready agent implementation.
+[`create_agent`](https://github.com/meng-yijie1996/myNotes/blob/master/LLM/AgentGuide/LangChainReference/01_create_agent.md) provides a production-ready agent implementation.
 > `create_agent`提供了一个可用于生产环境的智能体实现。
 
 An LLM Agent runs tools in a **loop** to achieve a goal. An agent runs until a stop condition is met - i.e., when the model emits a final output or an iteration limit is reached.
@@ -11,29 +11,36 @@ An LLM Agent runs tools in a **loop** to achieve a goal. An agent runs until a s
 
 ![agent_run_tool_in_a_loop](../pics/agent_run_tool_in_a_loop.png "agent_run_tool_in_a_loop")
 
-create_agent builds a graph-based agent runtime using LangGraph. A graph consists of nodes (steps) and edges (connections) that define how your agent processes information. The agent moves through this graph, executing nodes like the model node (which calls the model), the tools node (which executes tools), or middleware.
-create_agent使用LangGraph构建基于图的智能体运行时。图由节点（步骤）和边（连接）组成，这些节点和边定义了智能体处理信息的方式。智能体在该图中移动，执行各种节点，如模型节点（用于调用模型）、工具节点（用于执行工具）或中间件。
-Learn more about the Graph API. 了解更多关于图API的信息。
+`create_agent` builds a graph-based agent runtime using [LangGraph](https://github.com/meng-yijie1996/myNotes/blob/master/LLM/AgentGuide/LangGraph/LangGraph_0_overview.md). A graph consists of **nodes** (steps) and **edges** (connections) that define how your agent processes information. The agent **moves through this graph**, **executing nodes** like the model node (which calls the model), the tools node (which executes tools), or middleware.
+> create_agent使用LangGraph构建基于图的智能体运行时。图由节点（步骤）和边（连接）组成，这些节点和边定义了智能体处理信息的方式。智能体在该图中移动，执行各种节点，如模型节点（用于调用模型）、工具节点（用于执行工具）或中间件。
+Learn more about the [Graph API](https://github.com/meng-yijie1996/myNotes/blob/master/LLM/AgentGuide/LangGraph/LangGraph_05_02_Graph_API.md).
 ​
-Core components 核心组件
-​
-Model 模型
+## Core components
+​### Model
 The model is the reasoning engine of your agent. It can be specified in multiple ways, supporting both static and dynamic model selection.
-模型是智能体的推理引擎。它可以通过多种方式指定，支持静态和动态模型选择。
+> 模型是智能体的推理引擎。它可以通过多种方式指定，支持静态和动态模型选择。
 ​
-Static model 静态模型
+#### Static model
 Static models are configured once when creating the agent and remain unchanged throughout execution. This is the most common and straightforward approach.
-静态模型在创建智能体时配置一次，并且在整个执行过程中保持不变。这是最常见且最简单直接的方法。
-To initialize a static model from a
-从一个模型标识符字符串初始化静态模型 模型标识符字符串支持自动推断（例如，"gpt-5" 将被推断为 "openai:gpt-5"）。参考 参考资料</b2 查看完整的模型标识符字符串映射列表。 要更好地控制模型配置，请直接使用提供程序包初始化模型实例。在这个示例中，我们使用 ChatOpenAI。查看 聊天模型 了解其他可用的聊天模型类。 模型实例使您能够完全控制配置。当您需要设置特定的 参数</b0（如 温度、最大令牌数、超时时间、基础URL 以及其他特定于提供程序的设置）时，请使用它们。参考 参考资料</b5 查看模型上的可用参数和方法。 动态模型 动态模型在运行时根据当前状态进行选择
-model identifier string 模型标识符字符串:
+> 静态模型在创建智能体时配置一次，并且在整个执行过程中保持不变。这是最常见且最简单直接的方法。
+
+##### model identifier string
+To initialize a static model from a model identifier string
+
+Model identifier strings support **`automatic inference`** (e.g., "gpt-5" will be inferred as "openai:gpt-5"). Refer to the [reference](https://reference.langchain.com/python/langchain/chat_models/base/init_chat_model?_gl=1*12bp8va*_gcl_au*Mzc5MTc3ODg5LjE3NzEwNTk5ODM.*_ga*MTg3MTg2ODE2NS4xNzcxMDU5OTg0*_ga_47WX3HKKY2*czE3NzM1NDA0MzAkbzkkZzEkdDE3NzM1NDQzODYkajYwJGwwJGgw) to see a full list of model identifier string mappings.
+> 模型标识符字符串支持自动推断（例如，"gpt-5" 将被推断为 "openai:gpt-5"）。请参考参考资料 查看完整的模型标识符字符串映射列表。
+
+``` python
 from langchain.agents import create_agent
 
 agent = create_agent("openai:gpt-5", tools=tools)
-Model identifier strings support automatic inference (e.g., "gpt-5" will be inferred as "openai:gpt-5"). Refer to the reference to see a full list of model identifier string mappings.
-模型标识符字符串支持自动推断（例如，"gpt-5" 将被推断为 "openai:gpt-5"）。请参考 参考资料 查看完整的模型标识符字符串映射列表。
-For more control over the model configuration, initialize a model instance directly using the provider package. In this example, we use ChatOpenAI. See Chat models for other available chat model classes.
-若要更好地控制模型配置，可以直接使用提供程序包初始化模型实例。在本示例中，我们使用ChatOpenAI。有关其他可用的聊天模型类，请参见聊天模型。
+```
+
+##### using the provider package
+For **more control** over the model configuration, initialize a model instance directly using the provider package. In this example, we use ChatOpenAI. See [Chat models](https://docs.langchain.com/oss/python/integrations/chat) for other available chat model classes.
+> 若要更好地控制模型配置，可以直接使用提供程序包初始化模型实例。在本示例中，我们使用ChatOpenAI。有关其他可用的聊天模型类，请参见聊天模型。
+
+``` python
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 
@@ -45,14 +52,19 @@ model = ChatOpenAI(
     # ... (other params)
 )
 agent = create_agent(model, tools=tools)
-Model instances give you complete control over configuration. Use them when you need to set specific parameters like temperature, max_tokens, timeouts, base_url, and other provider-specific settings. Refer to the reference to see available params and methods on your model.
-模型实例让你能够完全控制配置。当你需要设置特定的参数</b0（如temperature、max_tokens、timeouts、base_url）以及其他特定于提供商的设置时，可以使用它们。请参考参考文档，了解模型上可用的参数和方法。
+```
+
+Model instances give you complete control over configuration. Use them when you need to set specific parameters like `temperature`, `max_tokens`, `timeouts`, `base_url`, and other provider-specific settings. Refer to the [reference](https://docs.langchain.com/oss/python/integrations/providers/all_providers) to see available params and methods on your model.
+> 模型实例让你能够完全控制配置。当你需要设置特定的参数（如temperature、max_tokens、timeouts、base_url）以及其他特定于提供商的设置时，可以使用它们。请参考参考文档，了解模型上可用的参数和方法。
 ​
-Dynamic model 动态模型
-Dynamic models are selected at 动态模型是在runtime 运行时 based on the current 基于当前state 状态 and context. This enables sophisticated routing logic and cost optimization.
-以及上下文。这实现了复杂的路由逻辑和成本优化。
-To use a dynamic model, create middleware using the @wrap_model_call decorator that modifies the model in the request:
-要使用动态模型，请使用@wrap_model_call装饰器创建中间件，以修改请求中的模型：
+#### Dynamic model
+Dynamic models are selected at runtime based on the current state and context. This enables sophisticated routing logic and cost optimization.
+> 动态模型会在运行时根据当前状态和上下文进行选择。这实现了复杂的路由逻辑和成本优化。
+
+To use a dynamic model, create middleware using the `@wrap_model_call` decorator that modifies the model in the request:
+> 要使用动态模型，请使用@wrap_model_call装饰器创建中间件，以修改请求中的模型：
+
+``` python
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
 from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResponse
@@ -61,6 +73,7 @@ from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResp
 basic_model = ChatOpenAI(model="gpt-4.1-mini")
 advanced_model = ChatOpenAI(model="gpt-4.1")
 
+# Note1: 装饰器与模型修改函数，函数返回模型实例
 @wrap_model_call
 def dynamic_model_selection(request: ModelRequest, handler) -> ModelResponse:
     """Choose model based on conversation complexity."""
@@ -75,16 +88,19 @@ def dynamic_model_selection(request: ModelRequest, handler) -> ModelResponse:
     return handler(request.override(model=model))
 
 agent = create_agent(
+    # Note2: 要指定一个初始阶段使用的默认模型
     model=basic_model,  # Default model
     tools=tools,
+    # 中间件必须要指定模型修改函数
     middleware=[dynamic_model_selection]
 )
+```
+
 Pre-bound models (models with bind_tools already called) are not supported when using structured output. If you need dynamic model selection with structured output, ensure the models passed to the middleware are not pre-bound.
 使用结构化输出时，不支持预绑定模型（已调用bind_tools的模型）。如果需要结合结构化输出进行动态模型选择，请确保传递给中间件的模型未经过预绑定。
 For model configuration details, see Models. For dynamic model selection patterns, see Dynamic model in middleware.
-有关模型配置的详细信息，请参见模型。有关动态模型选择模式，请参见中间件中的动态模型。
 ​
-Tools 工具
+### Tools 工具
 Tools give agents the ability to take actions. Agents go beyond simple model-only tool binding by facilitating:
 工具赋予智能体采取行动的能力。智能体超越了单纯的模型工具绑定，其优势在于：
 Multiple tool calls in sequence (triggered by a single prompt)
