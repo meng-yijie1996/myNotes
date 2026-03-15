@@ -50,88 +50,225 @@ os.environ["OPENAI_API_KEY"] = "sk-..."
 
 model = init_chat_model("gpt-5.2")
 ```
+##### Model Class
 ``` python
+import os
+from langchain_openai import ChatOpenAI
 
+os.environ["OPENAI_API_KEY"] = "sk-..."
+
+model = ChatOpenAI(model="gpt-5.2")
 ```
+
 #### Anthropic
-#### Azure
-#### Google Gemini
-#### AWS Bedrock
-#### HuggingFace
-👉 Read the Anthropic chat model integration docs
-👉 阅读 Anthropic 聊天模型集成文档
+Read the [Anthropic chat model integration docs](https://docs.langchain.com/oss/python/integrations/chat/anthropic)
+
+``` bash
 pip install -U "langchain[anthropic]"
-
-init_chat_model
-初始化聊天模型
-
-Model Class
-模型类别
+```
+##### init_chat_model
+``` python
 import os
 from langchain.chat_models import init_chat_model
 
 os.environ["ANTHROPIC_API_KEY"] = "sk-..."
 
 model = init_chat_model("claude-sonnet-4-6")
+```
+##### Model Class
+``` python
+import os
+from langchain_anthropic import ChatAnthropic
+
+os.environ["ANTHROPIC_API_KEY"] = "sk-..."
+
+model = ChatAnthropic(model="claude-sonnet-4-6")
+```
+
+#### Azure
+Read the [Azure chat model integration docs](https://docs.langchain.com/oss/python/integrations/chat/azure_chat_openai)
+
+``` bash
+pip install -U "langchain[openai]"
+```
+##### init_chat_model
+``` python
+import os
+from langchain.chat_models import init_chat_model
+
+os.environ["AZURE_OPENAI_API_KEY"] = "..."
+os.environ["AZURE_OPENAI_ENDPOINT"] = "..."
+os.environ["OPENAI_API_VERSION"] = "2025-03-01-preview"
+
+model = init_chat_model(
+    "azure_openai:gpt-5.2",
+    azure_deployment=os.environ["AZURE_OPENAI_DEPLOYMENT_NAME"],
+)
+```
+##### Model Class
+``` python
+import os
+from langchain_openai import AzureChatOpenAI
+
+os.environ["AZURE_OPENAI_API_KEY"] = "..."
+os.environ["AZURE_OPENAI_ENDPOINT"] = "..."
+os.environ["OPENAI_API_VERSION"] = "2025-03-01-preview"
+
+model = AzureChatOpenAI(
+    model="gpt-5.2",
+    azure_deployment=os.environ["AZURE_OPENAI_DEPLOYMENT_NAME"]
+)
+```
+
+#### Google Gemini
+Read the [Google GenAI chat model integration docs](https://docs.langchain.com/oss/python/integrations/chat/google_generative_ai)
+
+``` bash
+pip install -U "langchain[google-genai]"
+```
+##### init_chat_model
+``` python
+import os
+from langchain.chat_models import init_chat_model
+
+os.environ["GOOGLE_API_KEY"] = "..."
+
+model = init_chat_model("google_genai:gemini-2.5-flash-lite")
+```
+##### Model Class
+``` python
+import os
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+os.environ["GOOGLE_API_KEY"] = "..."
+
+model = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite")
+```
+
+#### AWS Bedrock
+Read the [AWS Bedrock chat model integration docs](https://docs.langchain.com/oss/python/integrations/chat/bedrock)
+
+``` bash
+pip install -U "langchain[aws]"
+```
+##### init_chat_model
+``` python
+from langchain.chat_models import init_chat_model
+
+# Follow the steps here to configure your credentials:
+# https://docs.aws.amazon.com/bedrock/latest/userguide/getting-started.html
+
+model = init_chat_model(
+    "anthropic.claude-3-5-sonnet-20240620-v1:0",
+    model_provider="bedrock_converse",
+)
+```
+##### Model Class
+``` python
+from langchain_aws import ChatBedrock
+
+model = ChatBedrock(model="anthropic.claude-3-5-sonnet-20240620-v1:0")
+```
+
+#### HuggingFace
+Read the [HuggingFace chat model integration docs](https://docs.langchain.com/oss/python/integrations/chat/huggingface)
+
+``` bash
+pip install -U "langchain[huggingface]"
+```
+##### init_chat_model
+``` python
+import os
+from langchain.chat_models import init_chat_model
+
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = "hf_..."
+
+model = init_chat_model(
+    "microsoft/Phi-3-mini-4k-instruct",
+    model_provider="huggingface",
+    temperature=0.7,
+    max_tokens=1024,
+)
+```
+##### Model Class
+``` python
+import os
+from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
+
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = "hf_..."
+
+llm = HuggingFaceEndpoint(
+    repo_id="microsoft/Phi-3-mini-4k-instruct",
+    temperature=0.7,
+    max_length=1024,
+)
+model = ChatHuggingFace(llm=llm)
+```
+
+``` python
 response = model.invoke("Why do parrots talk?")
-See init_chat_model for more detail, including information on how to pass model parameters.
+```
+
+See `init_chat_model` for more detail, including information on how to pass model parameters.
 有关更多详情（包括如何传递模型参数的信息），请参见init_chat_model。
 ​
-Supported models 支持的模型
-LangChain supports all major model providers, including OpenAI, Anthropic, Google, Azure, AWS Bedrock, and more. Each provider offers a variety of models with different capabilities. For a full list of supported models in LangChain, see the integrations page.
-LangChain支持所有主要的模型提供商，包括OpenAI、Anthropic、谷歌、Azure、AWS Bedrock等。每个提供商都提供了多种具有不同功能的模型。有关LangChain中支持的所有模型的完整列表，请参阅集成页面。
+### Supported models
+LangChain supports all major model providers, including OpenAI, Anthropic, Google, Azure, AWS Bedrock, and more. Each provider offers a variety of models with different capabilities. For a full list of supported models in LangChain, see the [integrations page](https://docs.langchain.com/oss/python/integrations/providers/overview).
+> LangChain支持所有主要的模型提供商，包括OpenAI、Anthropic、谷歌、Azure、AWS Bedrock等。每个提供商都提供了多种具有不同功能的模型。有关LangChain中支持的所有模型的完整列表，请参阅集成页面。
 ​
-Key methods 关键方法
-Invoke 调用
+### Key methods
+**Invoke**: **messages in, messages out**
+
 The model takes messages as input and outputs messages after generating a complete response.
-该模型将消息作为输入，并在生成完整响应后输出消息。
-Stream 流式传输
-Invoke the model, but stream the output as it is generated in real-time.
-调用模型，但在生成输出时实时流式传输。
-Batch 批量
-Send multiple requests to a model in a batch for more efficient processing.
-成批向模型发送多个请求，以实现更高效的处理。
-In addition to chat models, LangChain provides support for other adjacent technologies, such as embedding models and vector stores. See the integrations page for details.
-除了聊天模型外，LangChain 还支持其他相关技术，例如嵌入模型和向量存储。有关详细信息，请参见 集成页面。
+> 该模型将消息作为输入，并在生成完整响应后输出消息。
+
+**Stream**
+
+Invoke the model, but stream the output as it is generated **in real-time**.
+> 调用模型，但在生成输出时实时流式传输。
+
+**Batch**
+
+Send **multiple requests** to a model in a batch for more efficient processing.
+> 成批向模型发送多个请求，以实现更高效的处理。
+
+In addition to chat models, LangChain provides support for other adjacent technologies, such as embedding models and vector stores. See the [integrations page](https://docs.langchain.com/oss/python/integrations/providers/overview) for details.
+> 除了聊天模型外，LangChain 还支持其他相关技术，例如嵌入模型和向量存储。有关详细信息，请参见 集成页面。
 ​
-Parameters 参数
+## Parameters
 A chat model takes parameters that can be used to configure its behavior. The full set of supported parameters varies by model and provider, but standard ones include:
-聊天模型会接收一些可用于配置其行为的参数。受支持的完整参数集因模型和提供商而异，但标准参数包括：
+> 聊天模型会接收一些可用于配置其行为的参数。受支持的完整参数集因模型和提供商而异，但标准参数包括：
 ​
-model 模型
-stringrequired 字符串，必填项
+##### model `string` `required`
 The name or identifier of the specific model you want to use with a provider. You can also specify both the model and its provider in a single argument using the ’:’ format, for example, ‘openai:o1’.
-你想要与提供商一起使用的特定模型的名称或标识符。你也可以在一个参数中使用“:”格式同时指定模型及其提供商，例如“openai:o1”。
+> 你想要与提供商一起使用的特定模型的名称或标识符。你也可以在一个参数中使用“:”格式同时指定模型及其提供商，例如“openai:o1”。
 ​
-api_key API密钥
-string 字符串
-The key required for authenticating with the model’s provider. This is usually issued when you sign up for access to the model. Often accessed by setting an
-与模型提供商进行身份验证所需的密钥。这通常是在你注册获取模型访问权限时颁发的。通常可以通过设置一个
-environment variable 环境变量.
+##### api_key `string`
+The key required for authenticating with the model’s provider. This is usually issued when you sign up for access to the model. Often accessed by setting an environment variable
+> 与模型提供商进行身份验证所需的密钥。这通常是在你注册获取模型访问权限时颁发的。通常可以通过设置一个环境变量.
 ​
-temperature 温度
-number 数字
+##### temperature `number`
 Controls the randomness of the model’s output. A higher number makes responses more creative; lower ones make them more deterministic.
-控制模型输出的随机性。数值越高，响应越具创造性；数值越低，响应越具确定性。
+> 控制模型输出的随机性。数值越高，响应越具创造性；数值越低，响应越具确定性。
 ​
-max_tokens 最大令牌数
-number 数字
-Limits the total number of 限制的总数tokens 标记符 in the response, effectively controlling how long the output can be.
-限制响应中的总令牌数，从而有效地控制输出的长度。
+##### max_tokens `number`
+Limits the total number of tokens **in the response**, effectively controlling how long the output can be.
+> 限制响应中的总令牌数，从而有效地控制输出的长度。
 ​
-timeout 超时
-number 数字
+##### timeout `number`
 The maximum time (in seconds) to wait for a response from the model before canceling the request.
-取消请求前等待模型响应的最长时间（以秒为单位）。
+> 取消请求前等待模型响应的最长时间（以秒为单位）。
 ​
-max_retries 最大重试次数
-numberdefault:"6" numberdefault:"6
+##### max_retries `number` `default:"6"`
 The maximum number of attempts the system will make to resend a request if it fails due to issues like network timeouts or rate limits. Retries use exponential backoff with jitter. Network errors, rate limits (429), and server errors (5xx) are retried automatically. Client errors such as 401 (unauthorized) or 404 are not retried. For long-running agent tasks on unreliable networks, consider increasing this to 10–15.
-如果请求因网络超时或速率限制等问题失败，系统将尝试重新发送请求的最大次数。重试采用带抖动的指数退避策略。网络错误、速率限制（429）和服务器错误（5xx）会自动重试。客户端错误（如401（未授权）或404）不会重试。对于在不可靠网络上运行的长时间智能体任务，可考虑将此值增加到10–15。
-Using init_chat_model, pass these parameters as inline
-使用init_chat_model，将这些参数作为内联参数传递
-**kwargs:
-Initialize using model parameters 使用模型参数进行初始化
+> 如果请求因网络超时或速率限制等问题失败，系统将尝试重新发送请求的最大次数。重试采用带抖动的指数退避策略。网络错误、速率限制（429）和服务器错误（5xx）会自动重试。客户端错误（如401（未授权）或404）不会重试。对于在不可靠网络上运行的长时间智能体任务，可考虑将此值增加到10–15。
+
+Using `init_chat_model`, pass these parameters as inline **kwargs:
+> 使用init_chat_model，将这些参数作为内联参数传递
+
+##### Initialize using model parameters
+
+``` python
 model = init_chat_model(
     "claude-sonnet-4-6",
     # Kwargs passed to the model:
@@ -140,28 +277,36 @@ model = init_chat_model(
     max_tokens=1000,
     max_retries=6,  # Default; increase for unreliable networks
 )
+```
+
 Each chat model integration may have additional params used to control provider-specific functionality.
-每个聊天模型集成可能有额外的参数，用于控制特定于提供商的功能。
+> 每个聊天模型集成可能有额外的参数，用于控制特定于提供商的功能。
+
 For example, ChatOpenAI has use_responses_api to dictate whether to use the OpenAI Responses or Completions API.
-例如，ChatOpenAI 具有 use_responses_api 来指定是使用 OpenAI Responses API 还是 Completions API。
-To find all the parameters supported by a given chat model, head to the chat model integrations page.
-要查找特定聊天模型支持的所有参数，请前往聊天模型集成页面。
+> 例如，ChatOpenAI 具有 use_responses_api 来指定是使用 OpenAI Responses API 还是 Completions API。
+
+To find all the parameters supported by a given chat model, head to the [chat model integrations page](https://docs.langchain.com/oss/python/integrations/chat).
+> 要查找特定聊天模型支持的所有参数，请前往聊天模型集成页面。
 ​
-Invocation 调用
+## Invocation
 A chat model must be invoked to generate an output. There are three primary invocation methods, each suited to different use cases.
-必须调用聊天模型才能生成输出。主要有三种调用方法，每种方法适用于不同的使用场景。
+> 聊天模型必须调用才能生成输出。主要有三种调用方法，每种方法适用于不同的使用场景。
 ​
-Invoke 调用
-The most straightforward way to call a model is to use invoke() with a single message or a list of messages.
-调用模型最直接的方法是使用invoke()，传入一条消息或一个消息列表。
-Single message 单条消息
+### Invoke
+The most straightforward way to call a model is to use `invoke()` with a single message or a list of messages.
+> 调用模型最直接的方法是使用invoke()，传入一条消息或一个消息列表。
+
+##### Single message
+``` python
 response = model.invoke("Why do parrots have colorful feathers?")
 print(response)
-A list of messages can be provided to a chat model to represent conversation history. Each message has a role that models use to indicate who sent the message in the conversation.
-可以向聊天模型提供消息列表来表示对话历史。每条消息都有一个角色，模型用该角色来表明对话中是谁发送了这条消息。
-See the messages guide for more detail on roles, types, and content.
-有关角色、类型和内容的更多详细信息，请参阅消息指南。
-Dictionary format 字典格式
+```
+
+**A list of messages** can be provided to a chat model to represent **conversation history**. Each message has a role that models use to indicate who sent the message in the conversation.
+> 可以向聊天模型提供消息列表来表示对话历史。每条消息都有一个角色，模型用该角色来表明对话中是谁发送了这条消息。
+
+##### Dictionary format
+``` python
 conversation = [
     {"role": "system", "content": "You are a helpful assistant that translates English to French."},
     {"role": "user", "content": "Translate: I love programming."},
@@ -171,7 +316,10 @@ conversation = [
 
 response = model.invoke(conversation)
 print(response)  # AIMessage("J'adore créer des applications.")
-Message objects 消息对象
+```
+
+##### Message objects
+``` python
 from langchain.messages import HumanMessage, AIMessage, SystemMessage
 
 conversation = [
@@ -183,6 +331,8 @@ conversation = [
 
 response = model.invoke(conversation)
 print(response)  # AIMessage("J'adore créer des applications.")
+```
+
 If the return type of your invocation is a string, ensure that you are using a chat model as opposed to a LLM. Legacy, text-completion LLMs return strings directly. LangChain chat models are prefixed with “Chat”, e.g., ChatOpenAI(/oss/integrations/chat/openai).
 如果你的调用返回类型是字符串，请确保你使用的是聊天模型而非大语言模型（LLM）。传统的文本补全大语言模型会直接返回字符串。LangChain聊天模型都以“Chat”为前缀，例如ChatOpenAI（/oss/integrations/chat/openai）。
 ​
