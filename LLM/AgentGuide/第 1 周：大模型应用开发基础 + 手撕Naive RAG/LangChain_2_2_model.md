@@ -333,25 +333,39 @@ response = model.invoke(conversation)
 print(response)  # AIMessage("J'adore créer des applications.")
 ```
 
-If the return type of your invocation is a string, ensure that you are using a chat model as opposed to a LLM. Legacy, text-completion LLMs return strings directly. LangChain chat models are prefixed with “Chat”, e.g., ChatOpenAI(/oss/integrations/chat/openai).
-如果你的调用返回类型是字符串，请确保你使用的是聊天模型而非大语言模型（LLM）。传统的文本补全大语言模型会直接返回字符串。LangChain聊天模型都以“Chat”为前缀，例如ChatOpenAI（/oss/integrations/chat/openai）。
+If the **return type** of your invocation is a **string**, ensure that you are using a chat model as opposed to a LLM. Legacy, text-completion LLMs return strings directly. LangChain chat models are prefixed with “Chat”, e.g., ChatOpenAI(/oss/integrations/chat/openai).
+> 如果你的调用返回类型是字符串，请确保你使用的是聊天模型而非大语言模型（LLM）。传统的文本补全大语言模型会直接返回字符串。LangChain聊天模型都以“Chat”为前缀，例如ChatOpenAI（/oss/integrations/chat/openai）。
 ​
-Stream 流式传输
+### Stream
 Most models can stream their output content while it is being generated. By displaying output progressively, streaming significantly improves user experience, particularly for longer responses.
-大多数模型在生成输出内容时都能进行流式传输。通过逐步显示输出，流式传输显著改善了用户体验，尤其是对于较长的响应而言。
-Calling stream() returns an 调用stream()会返回一个迭代器，该迭代器会在生成输出块时逐个产出这些块。你可以使用循环来实时处理每个块：iterator 迭代器 that yields output chunks as they are produced. You can use a loop to process each chunk in real-time:
-它会在生成输出块时将其产出。您可以使用循环来实时处理每个块：
+> 大多数模型在生成输出内容时都能进行流式传输。通过逐步显示输出，流式传输显著改善了用户体验，尤其是对于较长的响应而言。
 
-Basic text streaming
-基本文本流
+Calling `stream()` returns an iterator that yields output chunks as they are produced. You can use a loop to process each chunk in real-time:
+> 调用stream()会返回一个迭代器，会在输出块生成时逐个生成它们。您可以使用循环来实时处理每个块：
 
-Stream tool calls, reasoning, and other content
-流式传输工具调用、推理和其他内容
+##### Basic text streaming
+``` python
 for chunk in model.stream("Why do parrots have colorful feathers?"):
     print(chunk.text, end="|", flush=True)
-As opposed to invoke(), which returns a single AIMessage after the model has finished generating its full response, stream() returns multiple AIMessageChunk objects, each containing a portion of the output text. Importantly, each chunk in a stream is designed to be gathered into a full message via summation:
-与invoke()不同，后者会在模型完成其完整响应生成后返回单个AIMessage，而stream()会返回多个AIMessageChunk对象，每个对象都包含一部分输出文本。重要的是，流中的每个块都旨在通过汇总组合成一条完整的消息：
-Construct an AIMessage 构建一条AIMessage
+```
+##### Stream tool calls, reasoning, and other content
+``` python
+for chunk in model.stream("What color is the sky?"):
+    for block in chunk.content_blocks:
+        if block["type"] == "reasoning" and (reasoning := block.get("reasoning")):
+            print(f"Reasoning: {reasoning}")
+        elif block["type"] == "tool_call_chunk":
+            print(f"Tool call chunk: {block}")
+        elif block["type"] == "text":
+            print(block["text"])
+        else:
+            ...
+```
+As opposed to `invoke()`, which returns a single `AIMessage` after the model has finished generating its full response, `stream()` returns multiple `AIMessageChunk` objects, each containing a portion of the output text. Importantly, each chunk in a stream is designed to be gathered into a full message via summation:
+> 与invoke()不同，后者会在模型完成其完整响应生成后返回单个AIMessage，而stream()会返回多个AIMessageChunk对象，每个对象都包含一部分输出文本。重要的是，流中的每个块都旨在通过汇总组合成一条完整的消息：
+
+##### Construct an AIMessage
+``` python
 full = None  # None | AIMessageChunk
 for chunk in model.stream("What color is the sky?"):
     full = chunk if full is None else full + chunk
@@ -366,11 +380,18 @@ for chunk in model.stream("What color is the sky?"):
 
 print(full.content_blocks)
 # [{"type": "text", "text": "The sky is typically blue..."}]
+```
+
 The resulting message can be treated the same as a message that was generated with invoke()—for example, it can be aggregated into a message history and passed back to the model as conversational context.
-由此产生的消息可以与使用invoke()生成的消息同等对待——例如，它可以被聚合到消息历史中，并作为对话上下文传递回模型。
+> 由此产生的消息可以与使用invoke()生成的消息同等对待——例如，它可以被聚合到消息历史中，并作为对话上下文传递回模型。
+
 Streaming only works if all steps in the program know how to process a stream of chunks. For instance, an application that isn’t streaming-capable would be one that needs to store the entire output in memory before it can be processed.
-只有当程序中的所有步骤都知道如何处理块流时，流式传输才能工作。例如，一个不具备流式传输能力的应用程序需要将整个输出存储在内存中才能进行处理。
-Advanced streaming topics 高级流处理主题
+> 只有当程序中的所有步骤都知道如何处理块流时，流式传输才能工作。例如，一个不具备流式传输能力的应用程序需要将整个输出存储在内存中才能进行处理。
+
+#### Advanced streaming topics
+##### Streaming events
+
+##### "Auto-streaming" chat models
 
 ​
 Batch 批量
