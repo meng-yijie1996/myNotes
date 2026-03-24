@@ -1,11 +1,12 @@
-LLM Powered Autonomous Agents 由大语言模型驱动的自主智能体
-Date: June 23, 2023 | Estimated Reading Time: 31 min | Author: Lilian Weng
-日期：2023年6月23日 | 预计阅读时间：31分钟 | 作者：莉莲·翁
-Table of Contents 目录
-Building agents with LLM (large language model) as its core controller is a cool concept. Several proof-of-concepts demos, such as AutoGPT, GPT-Engineer and BabyAGI, serve as inspiring examples. The potentiality of LLM extends beyond generating well-written copies, stories, essays and programs; it can be framed as a powerful general problem solver.
-以大语言模型（LLM）作为核心控制器来构建智能体是一个很酷的概念。一些概念验证演示，如AutoGPT、GPT-Engineer和BabyAGI，就是很有启发性的例子。大语言模型的潜力不仅限于生成写得好的文案、故事、文章和程序，它还可以被构建成一个强大的通用问题解决器。
+# LLM Powered Autonomous Agents
+> 由大语言模型驱动的自主智能体
 
-Agent System Overview 智能体系统概述#
+Date: June 23, 2023 | Estimated Reading Time: 31 min | Author: Lilian Weng
+
+Building agents with LLM (large language model) as its core controller is a cool concept. Several proof-of-concepts demos, such as AutoGPT, GPT-Engineer and BabyAGI, serve as inspiring examples. The potentiality of LLM extends beyond generating well-written copies, stories, essays and programs; it can be framed as a powerful general problem solver.
+> 以大语言模型（LLM）作为核心控制器来构建智能体是一个很酷的概念。一些概念验证示例，如AutoGPT、GPT-Engineer和BabyAGI，就是很有启发性的例子。大语言模型的潜力不仅限于生成写得好的文案、故事、文章和程序，它还可以被构建成一个强大的通用问题解决器。
+
+## Agent System Overview
 In a LLM-powered autonomous agent system, LLM functions as the agent’s brain, complemented by several key components:
 在由大语言模型驱动的自主智能体系统中，大语言模型充当智能体的“大脑”，并辅以几个关键组件：
 
