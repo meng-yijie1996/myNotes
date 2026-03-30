@@ -8,15 +8,16 @@ Building agents with LLM (large language model) as its core controller is a cool
 
 ## Agent System Overview
 In a LLM-powered autonomous agent system, LLM functions as the agent’s brain, complemented by several key components:
-在由大语言模型驱动的自主智能体系统中，大语言模型充当智能体的“大脑”，并辅以几个关键组件：
+> 在由大语言模型驱动的自主智能体系统中，大语言模型充当智能体的“大脑”，并辅以几个关键组件：
 
-Planning 规划
-Subgoal and decomposition: The agent breaks down large tasks into smaller, manageable subgoals, enabling efficient handling of complex tasks.
-子目标与分解：智能体将大型任务分解为更小、可管理的子目标，从而能够高效处理复杂任务。
-Reflection and refinement: The agent can do self-criticism and self-reflection over past actions, learn from mistakes and refine them for future steps, thereby improving the quality of final results.
-反思与改进：智能体能够对过去的行为进行自我批评和自我反思，从错误中学习并为未来的步骤进行改进，从而提高最终结果的质量。
-Memory 记忆
-Short-term memory: I would consider all the in-context learning (See Prompt Engineering) as utilizing short-term memory of the model to learn.
+### Planning
+> 规划
+- Subgoal and decomposition: The agent breaks down large tasks into smaller, manageable subgoals, enabling efficient handling of complex tasks.
+> 子目标与分解：智能体将大型任务分解为更小、可管理的子目标，从而能够高效处理复杂任务。
+- Reflection and refinement: The agent can do self-criticism and self-reflection over past actions, learn from mistakes and refine them for future steps, thereby improving the quality of final results.
+> 反思与改进：智能体能够对过去的行为进行自我批评和自我反思，从错误中学习并为未来的步骤进行改进，从而提高最终结果的质量。
+### Memory
+- Short-term memory: I would consider all the in-context learning (See Prompt Engineering) as utilizing short-term memory of the model to learn.
 短期记忆：我认为所有的上下文学习（参见提示词工程）都是在利用模型的短期记忆进行学习。
 Long-term memory: This provides the agent with the capability to retain and recall (infinite) information over extended periods, often by leveraging an external vector store and fast retrieval.
 长期记忆：这为智能体提供了在较长时间内保留和回忆（无限）信息的能力，通常通过利用外部向量存储和快速检索来实现。
