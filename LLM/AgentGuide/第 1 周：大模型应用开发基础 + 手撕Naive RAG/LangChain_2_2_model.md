@@ -335,13 +335,15 @@ print(response)  # AIMessage("J'adore créer des applications.")
 
 If the **return type** of your invocation is a **string**, ensure that you are using a chat model as opposed to a LLM. Legacy, text-completion LLMs return strings directly. LangChain chat models are prefixed with “Chat”, e.g., ChatOpenAI(/oss/integrations/chat/openai).
 > 如果你的调用返回类型是字符串，请确保你使用的是聊天模型而非大语言模型（LLM）。传统的文本补全大语言模型会直接返回字符串。LangChain聊天模型都以“Chat”为前缀，例如ChatOpenAI（/oss/integrations/chat/openai）。
+> 如果你写代码时期望返回字符串，却用了普通 LLM，可能会出问题。因为：返回结果是原始字符串。
+> 想做正常对话、用消息格式交互，一定要用 ChatXXX 这种模型，不要用旧版文本补全模型。
 ​
 ### Stream
 Most models can stream their output content while it is being generated. By displaying output progressively, streaming significantly improves user experience, particularly for longer responses.
 > 大多数模型在生成输出内容时都能进行流式传输。通过逐步显示输出，流式传输显著改善了用户体验，尤其是对于较长的响应而言。
 
 Calling `stream()` returns an iterator that yields output chunks as they are produced. You can use a loop to process each chunk in real-time:
-> 调用stream()会返回一个迭代器，会在输出块生成时逐个生成它们。您可以使用循环来实时处理每个块：
+> 调用stream()会返回一个迭代器，在输出块生成时，会逐个生成它们。您可以使用循环来实时处理每个块：
 
 ##### Basic text streaming
 ``` python
@@ -390,9 +392,52 @@ Streaming only works if all steps in the program know how to process a stream of
 
 #### Advanced streaming topics
 ##### Streaming events
+LangChain chat models can also stream semantic events using `astream_events()`.
+> LangChain聊天模型还可以使用astream_events()来流式传输语义事件。
+
+This simplifies filtering based on event types and other metadata, and will aggregate the full message in the background. See below for an example.
+> 这简化了基于事件类型和其他元数据的筛选，并将在后台聚合完整消息。下面是一个示例。
+
+``` python
+async for event in model.astream_events("Hello"):
+
+    if event["event"] == "on_chat_model_start":
+        print(f"Input: {event['data']['input']}")
+
+    elif event["event"] == "on_chat_model_stream":
+        print(f"Token: {event['data']['chunk'].text}")
+
+    elif event["event"] == "on_chat_model_end":
+        print(f"Full message: {event['data']['output'].text}")
+
+    else:
+        pass
+```
+
+``` bash
+Input: Hello
+Token: Hi
+Token:  there
+Token: !
+Token:  How
+Token:  can
+Token:  I
+...
+Full message: Hi there! How can I help today?
+```
+See the astream_events() reference for event types and other details.
 
 ##### "Auto-streaming" chat models
-
+LangChain simplifies streaming from chat models by automatically enabling streaming mode in certain cases, even when you’re not explicitly calling the streaming methods. This is particularly useful when you use the non-streaming invoke method but still want to stream the entire application, including intermediate results from the chat model.
+> LangChain通过在特定情况下自动启用流式传输模式，简化了从聊天模型进行流式传输的过程，即便你没有明确调用流式传输方法也是如此。当你使用非流式的invoke方法，但仍希望流式传输整个应用程序（包括来自聊天模型的中间结果）时，这一点尤其有用。
+In LangGraph agents, for example, you can call model.invoke() within nodes, but LangChain will automatically delegate to streaming if running in a streaming mode.
+例如，在LangGraph智能体中，你可以在节点内调用model.invoke()，但如果是在流模式下运行，LangChain会自动委托给流处理。
+​
+How it works 工作原理
+When you invoke() a chat model, LangChain will automatically switch to an internal streaming mode if it detects that you are trying to stream the overall application. The result of the invocation will be the same as far as the code that was using invoke is concerned; however, while the chat model is being streamed, LangChain will take care of invoking on_llm_new_token events in LangChain’s callback system.
+当你调用（invoke()）一个聊天模型时，如果LangChain检测到你正尝试流式传输整个应用程序，它会自动切换到内部流式传输模式。就使用invoke的代码而言，调用的结果是相同的；然而，在流式传输聊天模型时，LangChain会负责在其回调系统中调用on_llm_new_token事件。
+Callback events allow LangGraph stream() and astream_events() to surface the chat model’s output in real-time.
+回调事件使LangGraph的stream()和astream_events()能够实时显示聊天模型的输出。
 ​
 Batch 批量
 Batching a collection of independent requests to a model can significantly improve performance and reduce costs, as the processing can be done in parallel:
