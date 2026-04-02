@@ -443,7 +443,7 @@ Callback events allow LangGraph `stream()` and `astream_events()` to surface the
 ​
 ### Batch
 Batching a collection of independent requests to a model can significantly improve performance and reduce costs, as the processing can be done in parallel:
-当处理可以并行进行时，将一组独立的请求批量发送给模型可以显著提升性能并降低成本
+> 当处理可以并行进行时，将一组独立的请求批量发送给模型可以显著提升性能并降低成本
 
 ``` python
 responses = model.batch([
@@ -461,67 +461,56 @@ This section describes a chat model method `batch()`, which parallelizes model c
 It is distinct from batch APIs supported by inference providers, such as OpenAI or Anthropic.
 > 它与推理提供商（如OpenAI或Anthropic）支持的批量API不同。
 
-By default, `batch()` will only return the final output for the entire batch. If you want to receive the output for each individual input as it finishes generating, you can stream results with batch_as_completed():
-> 默认情况下，batch() 只会返回整个批次的最终输出。如果您希望在每个单独输入完成生成时就收到其输出，可以使用 batch_as_completed() 来流式传输结果：
-Yield batch responses upon completion
-完成后生成批量响应
+By default, `batch()` will only return the final output for the **entire** batch. If you want to receive the output for each individual input **as it finishes generating**, you can stream results with `batch_as_completed()`:
+> 默认情况下，batch() 只会返回整个批次的最终输出。如果您希望在每个单独输入**完成生成时就收到其输出**，可以使用 batch_as_completed() 来流式传输结果：
+
+``` python
 for response in model.batch_as_completed([
     "Why do parrots have colorful feathers?",
     "How do airplanes fly?",
     "What is quantum computing?"
 ]):
     print(response)
-When using batch_as_completed(), results may arrive out of order. Each includes the input index for matching to reconstruct the original order as needed.
-使用batch_as_completed()时，结果可能会无序到达。每个结果都包含输入索引，以便在需要时进行匹配以重建原始顺序。
-When processing a large number of inputs using batch() or batch_as_completed(), you may want to control the maximum number of parallel calls. This can be done by setting the max_concurrency attribute in the RunnableConfig dictionary.
-使用batch()或batch_as_completed()处理大量输入时，您可能希望控制并行调用的最大数量。这可以通过在RunnableConfig字典中设置max_concurrency属性来实现。
-Batch with max concurrency 具有最大并发量的批处理
+```
+
+When using `batch_as_completed()`, results may arrive **out of order**. Each includes the **input index** for matching to **reconstruct the original order** as needed.
+> 使用batch_as_completed()时，结果可能会无序到达。每个结果都包含输入索引，以便在需要时进行匹配以重建原始顺序。
+
+When processing a large number of inputs using `batch()` or `batch_as_completed()`, you may want to control the maximum number of parallel calls. This can be done by setting the `max_concurrency` attribute in the `RunnableConfig` dictionary.
+> 使用batch()或batch_as_completed()处理大量输入时，您可能希望控制并行调用的最大数量。这可以通过在RunnableConfig字典中设置max_concurrency属性来实现。
+
+``` python
+# Batch with max concurrency
 model.batch(
     list_of_inputs,
     config={
         'max_concurrency': 5,  # Limit to 5 parallel calls
     }
 )
+```
+
 See the RunnableConfig reference for a full list of supported attributes.
-有关支持的完整属性列表，请参阅RunnableConfig参考文档。
+> 有关支持的完整属性列表，请参阅RunnableConfig参考文档。todo
+
 For more details on batching, see the reference.
-有关批处理的更多详细信息，请参阅参考资料。
+> 有关批处理的更多详细信息，请参阅参考资料。todo
 ​
-Tool calling 工具调用
+## Tool calling
 Models can request to call tools that perform tasks such as fetching data from a database, searching the web, or running code. Tools are pairings of:
-模型可以请求调用工具来执行诸如从数据库获取数据、搜索网页或运行代码等任务。工具是以下两者的组合：
-A schema, including the name of the tool, a description, and/or argument definitions (often a JSON schema)
-一个模式，包括工具名称、描述和/或参数定义（通常是一个JSON模式）
-A function or 函数或coroutine 协程 to execute. 执行。
+> 模型可以请求调用工具来执行诸如从数据库获取数据、搜索网页或运行代码等任务。工具是以下两者的组合：
+
+1. A schema, including the name of the tool, a description, and/or argument definitions (often a JSON schema)
+> 一个模式，包括工具名称、描述和/或参数定义（通常是一个JSON模式）
+2. A function or coroutine to execute.
+> 可执行的函数或协程。
+
 You may hear the term “function calling”. We use this interchangeably with “tool calling”.
-你可能会听到“函数调用”这个术语。我们将其与“工具调用”交替使用。
+> 你可能会听到“函数调用”这个术语。我们将其与“工具调用”交替使用。
+
 Here’s the basic tool calling flow between a user and a model:
-以下是用户与模型之间的基本工具调用流程：
 
+![basic_tool_calling_flow_between_a_user_and_a_model](../pics/basic_tool_calling_flow_between_a_user_and_a_model.png "basic_tool_calling_flow_between_a_user_and_a_model")
 
-
-
-
-
-
-Tools
-Model
-User
-Tools
-Model
-User
-par
-[Parallel Tool Calls]
-par
-[Tool Execution]
-"What's the weather in SF and NYC?"
-Analyze request & decide tools needed
-get_weather("San Francisco")
-get_weather("New York")
-SF weather data
-NYC weather data
-Process results & generate response
-"SF: 72°F sunny, NYC: 68°F cloudy"
 To make tools that you have defined available for use by a model, you must bind them using bind_tools. In subsequent invocations, the model can choose to call any of the bound tools as needed.
 要让你定义的工具可供模型使用，你必须使用bind_tools来绑定它们。在后续调用中，模型可以根据需要选择调用任何已绑定的工具。
 Some model providers offer 一些模型提供商提供built-in tools 内置工具 that can be enabled via model or invocation parameters (e.g. ChatOpenAI, ChatAnthropic). Check the respective provider reference for details.
