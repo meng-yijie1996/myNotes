@@ -428,21 +428,24 @@ Full message: Hi there! How can I help today?
 See the astream_events() reference for event types and other details.
 
 ##### "Auto-streaming" chat models
-LangChain simplifies streaming from chat models by automatically enabling streaming mode in certain cases, even when you’re not explicitly calling the streaming methods. This is particularly useful when you use the non-streaming invoke method but still want to stream the entire application, including intermediate results from the chat model.
-> LangChain通过在特定情况下自动启用流式传输模式，简化了从聊天模型进行流式传输的过程，即便你没有明确调用流式传输方法也是如此。当你使用非流式的invoke方法，但仍希望流式传输整个应用程序（包括来自聊天模型的中间结果）时，这一点尤其有用。
-In LangGraph agents, for example, you can call model.invoke() within nodes, but LangChain will automatically delegate to streaming if running in a streaming mode.
-例如，在LangGraph智能体中，你可以在节点内调用model.invoke()，但如果是在流模式下运行，LangChain会自动委托给流处理。
+LangChain simplifies streaming from chat models by **automatically enabling streaming mode** in certain cases, even when you’re **not explicitly calling** the streaming methods. This is particularly useful when you use the non-streaming invoke method but still want to stream the entire application, including intermediate results from the chat model.
+> LangChain通过在特定情况下自动启用流式传输模式，简化了从聊天模型进行流式传输的过程，即便你没有明确调用流式传输方法也是如此。当你使用非流式的调用方法，但仍希望流式传输整个应用程序（包括来自聊天模型的中间结果）时，这一点尤其有用。
+
+In LangGraph agents, for example, you can call `model.invoke()` within nodes, but LangChain will **automatically delegate to streaming** if running in a streaming mode.
+> 例如，在LangGraph智能体中，你可以在节点内调用model.invoke()，但如果是在流模式下运行，LangChain会自动委托给流处理。
 ​
-How it works 工作原理
-When you invoke() a chat model, LangChain will automatically switch to an internal streaming mode if it detects that you are trying to stream the overall application. The result of the invocation will be the same as far as the code that was using invoke is concerned; however, while the chat model is being streamed, LangChain will take care of invoking on_llm_new_token events in LangChain’s callback system.
-当你调用（invoke()）一个聊天模型时，如果LangChain检测到你正尝试流式传输整个应用程序，它会自动切换到内部流式传输模式。就使用invoke的代码而言，调用的结果是相同的；然而，在流式传输聊天模型时，LangChain会负责在其回调系统中调用on_llm_new_token事件。
-Callback events allow LangGraph stream() and astream_events() to surface the chat model’s output in real-time.
-回调事件使LangGraph的stream()和astream_events()能够实时显示聊天模型的输出。
+###### How it works
+When you `invoke()` a chat model, LangChain will automatically switch to an **internal streaming mode** if it detects that you are trying to stream the overall application. The result of the invocation will be the same as far as the code that was using invoke is concerned; however, while the chat model is being streamed, LangChain will take care of invoking `on_llm_new_token` events in LangChain’s callback system.
+> 当你invoke()一个聊天模型时，如果LangChain检测到你正尝试流式传输整个应用程序，它会自动切换到内部流式传输模式。就使用invoke的代码而言，调用的结果是相同的；然而，在流式传输聊天模型时，LangChain会负责在其回调系统中调用on_llm_new_token事件。
+
+Callback events allow LangGraph `stream()` and `astream_events()` to surface the chat model’s output in real-time.
+> 回调事件使LangGraph的stream()和astream_events()能够实时显示聊天模型的输出。
 ​
-Batch 批量
+### Batch
 Batching a collection of independent requests to a model can significantly improve performance and reduce costs, as the processing can be done in parallel:
-将一组独立的请求批量发送给模型可以显著提升性能并降低成本，因为这些处理可以并行进行：
-Batch 批量
+当处理可以并行进行时，将一组独立的请求批量发送给模型可以显著提升性能并降低成本
+
+``` python
 responses = model.batch([
     "Why do parrots have colorful feathers?",
     "How do airplanes fly?",
@@ -450,12 +453,16 @@ responses = model.batch([
 ])
 for response in responses:
     print(response)
-This section describes a chat model method batch(), which parallelizes model calls client-side.
-本节介绍了一种聊天模型方法batch()，该方法在客户端并行化模型调用。
+```
+
+This section describes a chat model method `batch()`, which parallelizes model calls **client-side**.
+> 本节介绍了一种聊天模型方法batch()，该方法在客户端并行化模型调用。
+
 It is distinct from batch APIs supported by inference providers, such as OpenAI or Anthropic.
-它与推理提供商（如OpenAI或Anthropic）支持的批量API不同。
-By default, batch() will only return the final output for the entire batch. If you want to receive the output for each individual input as it finishes generating, you can stream results with batch_as_completed():
-默认情况下，batch() 只会返回整个批次的最终输出。如果您希望在每个单独输入完成生成时就收到其输出，可以使用 batch_as_completed() 来流式传输结果：
+> 它与推理提供商（如OpenAI或Anthropic）支持的批量API不同。
+
+By default, `batch()` will only return the final output for the entire batch. If you want to receive the output for each individual input as it finishes generating, you can stream results with batch_as_completed():
+> 默认情况下，batch() 只会返回整个批次的最终输出。如果您希望在每个单独输入完成生成时就收到其输出，可以使用 batch_as_completed() 来流式传输结果：
 Yield batch responses upon completion
 完成后生成批量响应
 for response in model.batch_as_completed([
