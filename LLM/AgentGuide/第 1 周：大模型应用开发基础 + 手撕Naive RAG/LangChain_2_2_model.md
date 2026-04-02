@@ -511,13 +511,14 @@ Here’s the basic tool calling flow between a user and a model:
 
 ![basic_tool_calling_flow_between_a_user_and_a_model](../pics/basic_tool_calling_flow_between_a_user_and_a_model.png "basic_tool_calling_flow_between_a_user_and_a_model")
 
-To make tools that you have defined available for use by a model, you must bind them using bind_tools. In subsequent invocations, the model can choose to call any of the bound tools as needed.
-要让你定义的工具可供模型使用，你必须使用bind_tools来绑定它们。在后续调用中，模型可以根据需要选择调用任何已绑定的工具。
-Some model providers offer 一些模型提供商提供built-in tools 内置工具 that can be enabled via model or invocation parameters (e.g. ChatOpenAI, ChatAnthropic). Check the respective provider reference for details.
-可以通过模型或调用参数启用（例如ChatOpenAI、ChatAnthropic）。有关详细信息，请查看相应的提供商参考。
-See the tools guide for details and other options for creating tools.
-有关创建工具的详细信息和其他选项，请参见工具指南。
-Binding user tools 绑定用户工具
+To make tools that you have defined available for use by a model, you must bind them using `bind_tools`. In subsequent invocations, the model can choose to call any of the bound tools as needed.
+> 要让你定义的工具可供模型使用，你必须使用bind_tools来绑定它们。在后续调用中，模型可以根据需要选择调用任何已绑定的工具。
+
+Some model providers offer built-in tools(Tools that are executed server-side, such as web search and code interpreters) that can be enabled via model or invocation parameters (e.g. ChatOpenAI, ChatAnthropic). Check the respective provider reference for details.
+> 一些模型提供商提供内置工具（在服务端执行的工具，例如网络搜索与代码解释器）可以通过模型或调用参数启用。
+
+``` python
+# Binding user tools
 from langchain.tools import tool
 
 @tool
@@ -533,17 +534,44 @@ for tool_call in response.tool_calls:
     # View tool calls made by the model
     print(f"Tool: {tool_call['name']}")
     print(f"Args: {tool_call['args']}")
+```
+
 When binding user-defined tools, the model’s response includes a request to execute a tool. When using a model separately from an agent, it is up to you to execute the requested tool and return the result back to the model for use in subsequent reasoning. When using an agent, the agent loop will handle the tool execution loop for you.
-在绑定用户定义的工具时，模型的响应包含一个执行工具的请求。当将模型与智能体分开使用时，需要由您来执行所请求的工具，并将结果返回给模型，以便在后续推理中使用。当使用智能体时，智能体循环会为您处理工具执行循环。
+> 在绑定用户定义的工具时，模型的响应包含一个执行工具的请求。当与智能体分开，单独使用模型时，需要由您来执行所请求的工具，并将结果返回给模型，以便在后续推理中使用。当使用智能体时，智能体循环会为您处理工具执行循环。
+
 Below, we show some common ways you can use tool calling.
-下面，我们将展示一些使用工具调用的常见方法。
-Tool execution loop 工具执行循环
+#### Tool execution loop
+When a model returns tool calls, you need to execute the tools and pass the results back to the model. This creates a conversation loop where the model can use tool results to generate its final response. LangChain includes agent abstractions that handle this orchestration for you.
+> 当模型返回工具调用时，你需要执行这些工具并将结果回传给模型。这会形成一个对话循环，模型可借助工具结果生成最终回复。LangChain 内置了智能体抽象层，可替你完成这一流程调度。
 
-Forcing tool calls 强制工具调用
+``` python
+# Bind (potentially multiple) tools to the model
+model_with_tools = model.bind_tools([get_weather])
 
-Parallel tool calls 并行工具调用
+# Step 1: Model generates tool calls
+messages = [{"role": "user", "content": "What's the weather in Boston?"}]
+ai_msg = model_with_tools.invoke(messages)
+messages.append(ai_msg)
 
-Streaming tool calls 流式工具调用
+# Step 2: Execute tools and collect results
+for tool_call in ai_msg.tool_calls:
+    # Execute the tool with the generated arguments
+    tool_result = get_weather.invoke(tool_call)
+    messages.append(tool_result)
+
+# Step 3: Pass results back to model for final response
+final_response = model_with_tools.invoke(messages)
+print(final_response.text)
+# "The current weather in Boston is 72°F and sunny."
+```
+
+Here’s a simple example of how to do this:
+
+#### Forcing tool calls
+
+#### Parallel tool calls
+
+#### Streaming tool calls
 
 ​
 Structured output 结构化输出
