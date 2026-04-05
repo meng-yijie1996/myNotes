@@ -971,40 +971,47 @@ reasoning_steps = [b for b in response.content_blocks if b["type"] == "reasoning
 print(" ".join(step["reasoning"] for step in reasoning_steps))
 ```
 
-Depending on the model, you can sometimes specify the level of effort it should put into reasoning. Similarly, you can request that the model turn off reasoning entirely. This may take the form of categorical “tiers” of reasoning (e.g., 'low' or 'high') or integer token budgets.
+Depending on the model, you can sometimes specify the **level of effort** it should put into reasoning. Similarly, you can request that the model turn off reasoning entirely. This may take the form of categorical “tiers” of reasoning (e.g., 'low' or 'high') or integer token budgets.
 > 根据模型的不同，有时你可以指定它在推理时应投入的努力程度。同样，你也可以要求模型完全关闭推理功能。这可能表现为推理的明确“层级”（例如，'low'或'high'）或整数令牌预算。
-For details, see the integrations page or reference for your respective chat model.
-有关详情，请参阅您所用聊天模型的集成页面或参考资料。
+
+For details, see the integrations page or [reference](https://reference.langchain.com/python/integrations/?_gl=1*visi2n*_gcl_au*Mzg0MDk3MjI5LjE3NzEwNTk4NDM.*_ga*NTg3OTM5Mzg5LjE3NzEwNTk4NDM.*_ga_47WX3HKKY2*czE3NzUzODkzNjQkbzE0JGcxJHQxNzc1Mzg5ODU0JGo2MCRsMCRoMA..) for your respective chat model.
+> 有关详情，请参阅您所用聊天模型的集成页面或参考资料。
 ​
-Local models 本地模型
+### Local models
 LangChain supports running models locally on your own hardware. This is useful for scenarios where either data privacy is critical, you want to invoke a custom model, or when you want to avoid the costs incurred when using a cloud-based model.
-LangChain支持在您自己的硬件上本地运行模型。这在以下场景中非常有用：数据隐私至关重要、您希望调用自定义模型，或者您希望避免使用基于云的模型时产生的费用。
-Ollama is one of the easiest ways to run chat and embedding models locally.
-Ollama是在本地运行聊天和嵌入模型的最简单方法之一。
+> LangChain支持在您自己的硬件上本地运行模型。这在以下场景中非常有用：数据隐私至关重要、您希望调用自定义模型，或者您希望避免使用基于云的模型时产生的费用。
+
+[Ollama](https://docs.langchain.com/oss/python/integrations/chat/ollama) is one of the easiest ways to run chat and embedding models locally.
+> Ollama是在本地运行聊天和嵌入模型的最简单方法之一。
 ​
-Prompt caching 提示词缓存
-Many providers offer prompt caching features to reduce latency and cost on repeat processing of the same tokens. These features can be implicit or explicit:
-许多提供商都提供提示词缓存功能，以减少重复处理相同令牌时的延迟和成本。这些功能可以是隐式的或显式的：
-Implicit prompt caching: providers will automatically pass on cost savings if a request hits a cache. Examples: OpenAI and Gemini.
-隐式提示缓存：如果请求命中缓存，提供商将自动传递成本节省。例如：OpenAI和Gemini。
-Explicit caching: providers allow you to manually indicate cache points for greater control or to guarantee cost savings. Examples:
-显式缓存：提供商允许您手动指定缓存点，以获得更大的控制权或确保成本节约。例如：
-ChatOpenAI (via prompt_cache_key) ChatOpenAI（通过prompt_cache_key）
-Anthropic’s AnthropicPromptCachingMiddleware
-Anthropic的AnthropicPromptCachingMiddleware
-Gemini. Gemini。
-AWS Bedrock
+### Prompt caching
+Many providers offer prompt caching features to **reduce latency and cost** on repeat processing of the same tokens. These features can be implicit or explicit:
+> 许多提供商都提供提示词缓存功能，以减少重复处理相同令牌时的延迟和成本。这些功能可以是隐式的或显式的：
+
+- **Implicit prompt caching**: **providers** will automatically pass on cost savings if a request hits a cache. Examples: OpenAI and Gemini.
+> 隐式提示缓存：如果请求命中缓存，提供商将自动传递成本节省。例如：OpenAI和Gemini。
+- **Explicit caching**: providers allow you to manually indicate cache points for greater control or to guarantee cost savings. Examples:
+> 显式缓存：提供商允许您手动指定缓存点，以获得更大的控制权或确保成本节约。例如：
+- - ChatOpenAI (via `prompt_cache_key`)
+- - Anthropic’s AnthropicPromptCachingMiddleware
+- - Gemini.
+- - AWS Bedrock
+
 Prompt caching is often only engaged above a minimum input token threshold. See provider pages for details.
-提示词缓存通常仅在输入令牌超过最低阈值时启用。有关详细信息，请参阅提供商页面。
-Cache usage will be reflected in the usage metadata of the model response.
-缓存使用情况将反映在模型响应的使用元数据中。
+> 提示词缓存通常仅在输入令牌超过最低阈值时启用。有关详细信息，请参阅提供商页面。
+
+Cache usage will be reflected in the `usage metadata` of the model response.
+> 缓存使用情况将反映在模型响应的使用元数据中。
 ​
-Server-side tool use 服务器端工具使用
+### Server-side tool use
 Some providers support server-side tool-calling loops: models can interact with web search, code interpreters, and other tools and analyze the results in a single conversational turn.
-一些提供商支持服务器端的工具调用循环：模型可以在单次对话轮次中与网络搜索、代码解释器和其他工具进行交互，并分析结果。
+> 一些提供商支持服务器端的工具调用循环：模型可以在单次对话轮次中与网络搜索、代码解释器和其他工具进行交互，并分析结果。
+
 If a model invokes a tool server-side, the content of the response message will include content representing the invocation and result of the tool. Accessing the content blocks of the response will return the server-side tool calls and results in a provider-agnostic format:
-如果模型在服务器端调用工具，响应消息的内容将包含表示工具调用和结果的内容。访问响应的内容块将以与提供商无关的格式返回服务器端工具调用和结果：
-Invoke with server-side tool use 使用服务器端工具调用
+> 如果模型在服务器端调用工具，响应消息的内容将包含表示工具调用和结果的内容。访问响应的内容块将以与提供商无关的格式返回服务器端工具调用和结果：
+
+``` python
+# Invoke with server-side tool use
 from langchain.chat_models import init_chat_model
 
 model = init_chat_model("gpt-4.1-mini")
@@ -1014,7 +1021,9 @@ model_with_tools = model.bind_tools([tool])
 
 response = model_with_tools.invoke("What was a positive news story from today?")
 print(response.content_blocks)
-Result 结果
+```
+``` bash
+Result
 [
     {
         "type": "server_tool_call",
@@ -1044,14 +1053,15 @@ Result 结果
         ]
     }
 ]
-See all 29 lines
-查看全部29行
+```
+
 This represents a single conversational turn; there are no associated ToolMessage objects that need to be passed in as in client-side tool-calling.
-这代表单个对话轮次；不存在像客户端工具调用中那样需要传入的相关工具消息对象。
+> 这代表单个对话轮次；不存在像客户端工具调用中那样需要传入的相关工具消息对象。
+
 See the integration page for your given provider for available tools and usage details.
-有关可用工具和使用详情，请参阅您所用提供商的集成页面。
+> 有关可用工具和使用详情，请参阅您所用提供商的集成页面。
 ​
-Rate limiting 速率限制
+### Rate limiting
 Many chat model providers impose a limit on the number of invocations that can be made in a given time period. If you hit a rate limit, you will typically receive a rate limit error response from the provider, and will need to wait before making more requests.
 许多聊天模型提供商对特定时间段内的调用次数设置了限制。如果达到速率限制，您通常会收到提供商返回的速率限制错误响应，并且需要等待一段时间才能继续发送更多请求。
 To help manage rate limits, chat model integrations accept a rate_limiter parameter that can be provided during initialization to control the rate at which requests are made.
