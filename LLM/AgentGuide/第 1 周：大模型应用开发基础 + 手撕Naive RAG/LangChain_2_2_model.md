@@ -568,25 +568,106 @@ print(final_response.text)
 Here’s a simple example of how to do this:
 
 #### Forcing tool calls
+By default, the model has the freedom to choose which bound tool to use based on the user’s input. However, you might want to force choosing a tool, ensuring the model uses either a particular tool or any tool from a given list:
+> 默认情况下，模型可根据用户输入自主选择要调用的绑定工具。不过，你也可以强制指定工具，确保模型使用某一特定工具，或从指定列表中任选其一：
+``` python
+# Force use of any tool
+model_with_tools = model.bind_tools([tool_1], tool_choice="any")
+```
 
+``` python
+# Force use of specific tools
+model_with_tools = model.bind_tools([tool_1], tool_choice="tool_1")
+```
 #### Parallel tool calls
+Many models support calling multiple tools in parallel when appropriate. This allows the model to gather information from different sources simultaneously.
+> 许多模型在合适的情况下支持并行调用多个工具，这使得模型能够同时从不同来源收集信息。
+``` python
+model_with_tools = model.bind_tools([get_weather])
 
+response = model_with_tools.invoke(
+    "What's the weather in Boston and Tokyo?"
+)
+
+
+# The model may generate multiple tool calls
+print(response.tool_calls)
+# [
+#   {'name': 'get_weather', 'args': {'location': 'Boston'}, 'id': 'call_1'},
+#   {'name': 'get_weather', 'args': {'location': 'Tokyo'}, 'id': 'call_2'},
+# ]
+
+
+# Execute all tools (can be done in parallel with async)
+results = []
+for tool_call in response.tool_calls:
+    if tool_call['name'] == 'get_weather':
+        result = get_weather.invoke(tool_call)
+    ...
+    results.append(result)
+```
+
+The model intelligently determines when parallel execution is appropriate based on the independence of the requested operations.
+> 该模型会根据所请求操作的独立性，智能判断何时适合采用并行执行。
+
+Most models supporting tool calling enable parallel tool calls by default. Some (including OpenAI and Anthropic) allow you to **disable** this feature. To do this, set parallel_tool_calls=False:
+> 大多数支持工具调用的模型默认启用并行工具调用功能。部分模型（包括OpenAI和Anthropic）允许你禁用该功能。如需禁用，请设置parallel_tool_calls=False：
+
+``` python
+model.bind_tools([get_weather], parallel_tool_calls=False)
+```
 #### Streaming tool calls
-
+When streaming responses, tool calls are progressively built through `ToolCallChunk`. This allows you to see tool calls as they’re being generated rather than waiting for the complete response.
+> 在流式响应模式下，工具调用会通过ToolCallChunk逐步构建。这让你能够在工具调用生成的过程中**实时查看**，而非等待完整响应生成完毕。
 ​
-Structured output 结构化输出
-Models can be requested to provide their response in a format matching a given schema. This is useful for ensuring the output can be easily parsed and used in subsequent processing. LangChain supports multiple schema types and methods for enforcing structured output.
-可以要求模型以符合给定模式的格式提供响应。这有助于确保输出能够被轻松解析并用于后续处理。LangChain支持多种模式类型和用于实施结构化输出的方法。
-To learn about structured output, see Structured output.
-要了解结构化输出，请参阅结构化输出。
-Pydantic
-皮丹蒂克
-TypedDict
-类型字典
-JSON Schema
-JSON 模式
+``` python
+for chunk in model_with_tools.stream(
+    "What's the weather in Boston and Tokyo?"
+):
+    # Tool call chunks arrive progressively
+    for tool_chunk in chunk.tool_call_chunks:
+        if name := tool_chunk.get("name"):
+            print(f"Tool: {name}")
+        if id_ := tool_chunk.get("id"):
+            print(f"ID: {id_}")
+        if args := tool_chunk.get("args"):
+            print(f"Args: {args}")
+
+# Output:
+# Tool: get_weather
+# ID: call_SvMlU1TVIZugrFLckFE2ceRE
+# Args: {"lo
+# Args: catio
+# Args: n": "B
+# Args: osto
+# Args: n"}
+# Tool: get_weather
+# ID: call_QMZdy6qInx13oWKE7KhuhOLR
+# Args: {"lo
+# Args: catio
+# Args: n": "T
+# Args: okyo
+# Args: "}
+```
+You can accumulate chunks to build complete tool calls:
+> 你可以累积多个数据块以构建完整的工具调用：
+
+``` python
+gathered = None
+for chunk in model_with_tools.stream("What's the weather in Boston?"):
+    gathered = chunk if gathered is None else gathered + chunk
+    print(gathered.tool_calls)
+```
+
+## Structured output
+Models can be requested to provide their response in a format matching a given schema. This is useful for ensuring the output can be **easily parsed** and used in subsequent processing. LangChain supports multiple schema types and methods for enforcing structured output.
+> 可以要求模型以符合给定模式的格式提供响应。这有助于确保输出能够被轻松解析并用于后续处理。LangChain支持多种模式类型和用于实施结构化输出的方法。
+
+#### Pydantic
 Pydantic models provide the richest feature set with field validation, descriptions, and nested structures.
-Pydantic 模型提供了最丰富的功能集，包括字段验证、描述和嵌套结构。
+> Pydantic 模型提供了最丰富的功能集，包括字段验证、描述和嵌套结构。
+
+``` python
 from pydantic import BaseModel, Field
 
 class Movie(BaseModel):
@@ -599,35 +680,156 @@ class Movie(BaseModel):
 model_with_structure = model.with_structured_output(Movie)
 response = model_with_structure.invoke("Provide details about the movie Inception")
 print(response)  # Movie(title="Inception", year=2010, director="Christopher Nolan", rating=8.8)
-Key considerations for structured output
-结构化输出的关键注意事项
-Method parameter: Some providers support different methods for structured output:
-方法参数：一些提供商支持不同的结构化输出方法：
-'json_schema': Uses dedicated structured output features offered by the provider.
-'json_schema'：使用提供商提供的专用结构化输出功能。
-'function_calling': Derives structured output by forcing a tool call that follows the given schema.
-'function_calling'：通过强制遵循给定模式的工具调用来生成结构化输出。
-'json_mode': A precursor to 'json_schema' offered by some providers. Generates valid JSON, but the schema must be described in the prompt.
-'json_mode'：一些提供商提供的'json_schema'的前身。它会生成有效的JSON，但必须在提示词中描述其模式。
-Include raw: Set include_raw=True to get both the parsed output and the raw AI message.
-包含原始内容：设置include_raw=True以同时获取解析后的输出和原始AI消息。
-Validation: Pydantic models provide automatic validation. TypedDict and JSON Schema require manual validation.
-验证：Pydantic模型提供自动验证。TypedDict和JSON模式需要手动验证。
-See your provider’s integration page for supported methods and configuration options.
-有关支持的方法和配置选项，请参阅您的提供商集成页面。
-Example: Message output alongside parsed structure
-示例：消息输出与解析后的结构一起显示
+```
 
-Example: Nested structures 示例：嵌套结构
+#### TypedDict
+Python’s TypedDict provides a simpler alternative to Pydantic models, ideal when you don’t need runtime validation.
+> Python 的 TypedDict 提供了一种比 Pydantic 模型更简便的替代方案，在无需运行时验证的场景下尤为适用。
 
+``` python
+from typing_extensions import TypedDict, Annotated
+
+class MovieDict(TypedDict):
+    """A movie with details."""
+    title: Annotated[str, ..., "The title of the movie"]
+    year: Annotated[int, ..., "The year the movie was released"]
+    director: Annotated[str, ..., "The director of the movie"]
+    rating: Annotated[float, ..., "The movie's rating out of 10"]
+
+model_with_structure = model.with_structured_output(MovieDict)
+response = model_with_structure.invoke("Provide details about the movie Inception")
+print(response)  # {'title': 'Inception', 'year': 2010, 'director': 'Christopher Nolan', 'rating': 8.8}
+```
+#### JSON Schema
+Provide a JSON Schema for maximum control and interoperability.
+> 提供一个JSON Schema以实现最大程度的可控性与互操作性。
+``` python
+import json
+
+json_schema = {
+    "title": "Movie",
+    "description": "A movie with details",
+    "type": "object",
+    "properties": {
+        "title": {
+            "type": "string",
+            "description": "The title of the movie"
+        },
+        "year": {
+            "type": "integer",
+            "description": "The year the movie was released"
+        },
+        "director": {
+            "type": "string",
+            "description": "The director of the movie"
+        },
+        "rating": {
+            "type": "number",
+            "description": "The movie's rating out of 10"
+        }
+    },
+    "required": ["title", "year", "director", "rating"]
+}
+
+model_with_structure = model.with_structured_output(
+    # NOTE1
+    json_schema,
+    # NOTE2
+    method="json_schema",
+)
+response = model_with_structure.invoke("Provide details about the movie Inception")
+print(response)  # {'title': 'Inception', 'year': 2010, ...}
+```
+
+### Key considerations for structured output
+- Method parameter: Some providers support different methods for structured output:
+> 方法参数：一些提供商支持不同的结构化输出方法：
+- - 'json_schema': Uses dedicated structured output features offered by the provider.
+> 'json_schema'：使用提供商提供的专用结构化输出功能。
+- - 'function_calling': Derives structured output by forcing a tool call that follows the given schema.
+> 'function_calling'：通过强制遵循给定模式的工具调用来生成结构化输出。
+- - 'json_mode': A precursor to 'json_schema' offered by some providers. Generates valid JSON, but the schema must be described in the prompt.
+> 'json_mode'：一些提供商提供的'json_schema'的前身。它会生成有效的JSON，但必须在提示词中描述其模式。
+- Include raw: Set `include_raw=True` to get both the parsed output and the raw AI message.
+> 包含原始内容：设置include_raw=True以同时获取解析后的输出和原始AI消息。
+- Validation: Pydantic models provide automatic validation. TypedDict and JSON Schema require manual validation.
+> 验证：Pydantic模型提供自动验证。TypedDict和JSON模式需要手动验证。
+
+See your [provider’s integration](https://docs.langchain.com/oss/python/integrations/providers/overview) page for supported methods and configuration options.
+
+### Example: Message output alongside parsed structure
+> 示例：消息输出与解析后的结构一起显示
+
+It can be useful to return the raw `AIMessage` object alongside the parsed representation to access response metadata such as `token counts`. To do this, set `include_raw=True` when calling `with_structured_output`:
+> 在返回解析后表示形式的同时，返回原始AIMessage对象，可用于访问令牌计数等响应元数据。如需实现此功能，在调用with_structured_output时设置include_raw=True即可。
+``` python
+from pydantic import BaseModel, Field
+
+class Movie(BaseModel):
+    """A movie with details."""
+    title: str = Field(description="The title of the movie")
+    year: int = Field(description="The year the movie was released")
+    director: str = Field(description="The director of the movie")
+    rating: float = Field(description="The movie's rating out of 10")
+
+model_with_structure = model.with_structured_output(Movie, include_raw=True)
+response = model_with_structure.invoke("Provide details about the movie Inception")
+response
+# {
+#     "raw": AIMessage(...),
+#     "parsed": Movie(title=..., year=..., ...),
+#     "parsing_error": None,
+# }
+```
+### Example: Nested structures
+> 示例：嵌套结构
+Schemas can be nested:
+``` python
+# Pydantic BaseModel
+from pydantic import BaseModel, Field
+
+class Actor(BaseModel):
+    name: str
+    role: str
+
+class MovieDetails(BaseModel):
+    title: str
+    year: int
+    cast: list[Actor]
+    genres: list[str]
+    budget: float | None = Field(None, description="Budget in millions USD")
+
+model_with_structure = model.with_structured_output(MovieDetails)
+```
+
+``` python
+# TypedDict
+from typing_extensions import Annotated, TypedDict
+
+class Actor(TypedDict):
+    name: str
+    role: str
+
+class MovieDetails(TypedDict):
+    title: str
+    year: int
+    cast: list[Actor]
+    genres: list[str]
+    budget: Annotated[float | None, ..., "Budget in millions USD"]
+
+model_with_structure = model.with_structured_output(MovieDetails)
+```
 ​
-Advanced topics 高级主题
-​
-Model profiles 模型配置文件
+## Advanced topics
+### Model profiles
+> 模型配置文件
+
 Model profiles require langchain>=1.1.
-模型配置文件需要langchain>=1.1。
+
 LangChain chat models can expose a dictionary of supported features and capabilities through a .profile attribute:
-LangChain聊天模型可以通过.profile属性展示一个包含支持的功能和能力的字典：
+> LangChain聊天模型可以通过.profile属性展示一个包含支持的功能和能力的字典：
+
+``` bash
 model.profile
 # {
 #   "max_input_tokens": 400000,
@@ -636,7 +838,8 @@ model.profile
 #   "tool_calling": True,
 #   ...
 # }
-Refer to the full set of fields in the API reference.
+```
+Refer to the full set of fields in the [API reference](https://reference.langchain.com/python/langchain-core/language_models/model_profile/ModelProfile?_gl=1*1q4f7zv*_gcl_au*Mzg0MDk3MjI5LjE3NzEwNTk4NDM.*_ga*NTg3OTM5Mzg5LjE3NzEwNTk4NDM.*_ga_47WX3HKKY2*czE3NzUzODc1MjQkbzEzJGcxJHQxNzc1Mzg3NTMzJGo1MSRsMCRoMA..).
 请参考API 参考中的完整字段集。
 Much of the model profile data is powered by the models.dev project, an open source initiative that provides model capability data. These data are augmented with additional fields for purposes of use with LangChain. These augmentations are kept aligned with the upstream project as it evolves.
 模型配置文件的大部分数据由models.dev项目提供支持，这是一个提供模型能力数据的开源计划。为了与LangChain配合使用，这些数据还增加了额外的字段。随着上游项目的发展，这些新增内容会与之保持一致。
