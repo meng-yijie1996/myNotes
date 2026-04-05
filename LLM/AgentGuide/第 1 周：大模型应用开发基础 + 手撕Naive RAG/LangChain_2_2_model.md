@@ -840,63 +840,139 @@ model.profile
 # }
 ```
 Refer to the full set of fields in the [API reference](https://reference.langchain.com/python/langchain-core/language_models/model_profile/ModelProfile?_gl=1*1q4f7zv*_gcl_au*Mzg0MDk3MjI5LjE3NzEwNTk4NDM.*_ga*NTg3OTM5Mzg5LjE3NzEwNTk4NDM.*_ga_47WX3HKKY2*czE3NzUzODc1MjQkbzEzJGcxJHQxNzc1Mzg3NTMzJGo1MSRsMCRoMA..).
-请参考API 参考中的完整字段集。
-Much of the model profile data is powered by the models.dev project, an open source initiative that provides model capability data. These data are augmented with additional fields for purposes of use with LangChain. These augmentations are kept aligned with the upstream project as it evolves.
-模型配置文件的大部分数据由models.dev项目提供支持，这是一个提供模型能力数据的开源计划。为了与LangChain配合使用，这些数据还增加了额外的字段。随着上游项目的发展，这些新增内容会与之保持一致。
+> 请参考API 参考中的完整字段集。
+
+Much of the model profile data is powered by the models.dev project, an open source initiative that provides model capability data. These data are augmented with additional fields for purposes of use with LangChain. These augmentations are **kept aligned with the upstream project** as it evolves.
+> 模型配置文件的大部分数据由models.dev项目提供支持，这是一个提供模型能力数据的开源计划。为了与LangChain配合使用，这些数据还增加了额外的字段。随着上游项目的发展，这些新增内容会与之保持一致。
+
 Model profile data allow applications to work around model capabilities dynamically. For example:
-模型配置文件数据允许应用程序动态适应模型的能力。例如：
-Summarization middleware can trigger summarization based on a model’s context window size.
-摘要中间件可以根据模型的上下文窗口大小触发摘要生成。
-Structured output strategies in create_agent can be inferred automatically (e.g., by checking support for native structured output features).
-结构化输出策略在create_agent中可以自动推断（例如，通过检查对原生结构化输出功能的支持）。
-Model inputs can be gated based on supported modalities and maximum input tokens.
-可以根据支持的模态和最大输入令牌对模型输入进行控制。
-Updating or overwriting profile data
-更新或覆盖配置文件数据
+> 模型配置文件数据允许应用程序动态适应模型的能力。例如：
+1. Summarization middleware can trigger summarization based on a model’s context window size.
+> 摘要中间件可以根据模型的上下文窗口大小触发摘要生成。
+2. Structured output strategies in `create_agent` can be inferred automatically (e.g., by checking support for native structured output features).
+> 结构化输出策略在create_agent中可以自动推断（例如，通过检查对原生结构化输出功能的支持）。
+3. Model inputs can be gated based on supported `modalities` and maximum input tokens.
+> 可以根据支持的模态和最大输入令牌对模型输入进行控制。
+4. The `Deep Agents CLI` filters the `interactive model switcher` to models whose profiles report `tool_calling` support and text I/O, and displays context window sizes and capability flags in the selector detail view.
+> Deep Agents 命令行工具会将交互式模型切换器筛选为仅显示其配置文件标明支持工具调用与文本输入输出的模型，并在选择器详情视图中展示上下文窗口大小与功能标识。
+#### Updating or overwriting profile data
+> 更新或覆盖配置文件数据
+
+Model profile data can be changed if it is missing, stale, or incorrect.
+> 如果模型配置文件数据缺失、过时或有误，可对其进行修改。
+##### Option 1 (quick fix)
+You can instantiate a chat model with any valid profile:
+> 你可以使用任意有效的配置文件实例化聊天模型：
+``` python
+custom_profile = {
+    "max_input_tokens": 100_000,
+    "tool_calling": True,
+    "structured_output": True,
+    # ...
+}
+model = init_chat_model("...", profile=custom_profile)
+```
+The `profile` is also a regular dict and can be updated in place. If the model instance is shared, consider using model_copy to avoid mutating shared state.
+> `profile` 同样是一个常规dict，可直接原地更新。若模型实例为共享状态，建议使用 model_copy 以避免修改共享数据。
+``` python
+new_profile = model.profile | {"key": "value"}
+model.model_copy(update={"profile": new_profile})
+```
+
+##### Option 2 (fix data upstream)
+> 在上游修复数据
+
+The primary source for the data is the models.dev project. This data is merged with additional fields and overrides in LangChain integration packages and are shipped with those packages.
+> 这些数据的主要来源是models.dev项目。该数据会与LangChain集成包中的额外字段及覆盖规则进行合并，并随这些集成包一同发布。
+
+Model profile data can be updated through the following process:
+
+1. (If needed) update the source data at models.dev through a pull request to its repository on GitHub.
+> 通过向其GitHub代码库提交拉取请求，在models.dev上更新源数据。
+2. (If needed) update additional fields and overrides in `langchain_<package>/data/profile_augmentations.toml` through a pull request to the LangChain integration package.
+> （如需）通过向LangChain集成包提交拉取请求，更新langchain_<package>/data/profile_augmentations.toml文件中的附加字段及覆盖配置。
+3. Use the langchain-model-profiles CLI tool to pull the latest data from models.dev, merge in the augmentations and update the profile data:
+> 使用 langchain-model-profiles 命令行工具从 models.dev 拉取最新数据，合并增强内容并更新配置文件数据：
+
+``` bash
+pip install langchain-model-profiles
+```
+``` bash
+langchain-profiles refresh --provider <provider> --data-dir <data_dir>
+```
+
+This command:
+- Downloads the latest data for <provider> from models.dev
+> 从models.dev下载<provider>的最新数据
+- Merges augmentations from profile_augmentations.toml in <data_dir>
+> 合并<data_dir>目录下profile_augmentations.toml文件中的增强配置
+- Writes merged profiles to profiles.py in <data_dir>
+> 将合并后的配置文件写入<data_dir>目录下的profiles.py文件中
+
+For example: from libs/partners/anthropic in the LangChain monorepo:
+``` bash
+uv run --with langchain-model-profiles --provider anthropic --data-dir langchain_anthropic/data
+```
 
 Model profiles are a beta feature. The format of a profile is subject to change.
-模型配置文件是一项测试版功能。配置文件的格式可能会发生变化。
+> 模型配置文件是一项测试版功能。配置文件的格式可能会发生变化。
 ​
-Multimodal 多模态
-Certain models can process and return non-textual data such as images, audio, and video. You can pass non-textual data to a model by providing content blocks.
-某些模型可以处理并返回图像、音频和视频等非文本数据。您可以通过提供内容块将非文本数据传递给模型。
+### Multimodal
+Certain models can process and return non-textual data such as images, audio, and video. You can pass non-textual data to a model by providing `content blocks`.
+> 某些模型可以处理并返回图像、音频和视频等非文本数据。您可以通过提供内容块将非文本数据传递给模型。
+
 All LangChain chat models with underlying multimodal capabilities support:
-所有具有潜在多模态能力的LangChain聊天模型都支持：
-Data in the cross-provider standard format (see our messages guide)
-跨提供商标准格式的数据（参见我们的消息指南）
-OpenAI chat completions format OpenAI 聊天补全格式
-Any format that is native to that specific provider (e.g., Anthropic models accept Anthropic native format)
-任何特定提供商的原生格式（例如，Anthropic模型接受Anthropic原生格式）
+> 所有具备底层多模态能力的LangChain聊天模型均支持：
+1. Data in the cross-provider standard format (see our Messages guide)
+> 跨提供商的标准格式数据
+2. OpenAI chat completions format
+> OpenAI 聊天补全格式
+3. Any format that is native to that specific provider (e.g., Anthropic models accept Anthropic native format)
+> 任何特定提供商的原生格式（例如，Anthropic模型接受Anthropic原生格式）
+
 See the multimodal section of the messages guide for details.
-详见消息指南的多模态部分。
-Some models 一些模型 can return multimodal data as part of their response. If invoked to do so, the resulting AIMessage will have content blocks with multimodal types.
-可以在其响应中返回多模态数据。如果被调用执行此操作，生成的AIMessage将包含具有多模态类型的内容块。
-Multimodal output 多模态输出
+
+Some models can return multimodal data as part of their response. If invoked to do so, the resulting AIMessage will have content blocks with multimodal types.
+> 部分模型能够返回多模态数据作为响应的一部分。若调用时指定该功能，生成的人工智能消息将包含带有多模态类型的内容块。
+
+``` python
+# Multimodal output
 response = model.invoke("Create a picture of a cat")
 print(response.content_blocks)
 # [
 #     {"type": "text", "text": "Here's a picture of a cat"},
 #     {"type": "image", "base64": "...", "mime_type": "image/jpeg"},
 # ]
-See the integrations page for details on specific providers.
-有关特定提供商的详细信息，请参见集成页面。
+```
+See the [integrations page](https://docs.langchain.com/oss/python/integrations/providers/overview) for details on specific providers.
+> 有关特定提供商的详细信息，请参见集成页面。
 ​
-Reasoning 推理
-Many models are capable of performing multi-step reasoning to arrive at a conclusion. This involves breaking down complex problems into smaller, more manageable steps.
-许多模型能够执行多步推理以得出结论。这包括将复杂问题分解为更小、更易于处理的步骤。
-If supported by the underlying model, you can surface this reasoning process to better understand how the model arrived at its final answer.
-如果底层模型支持，你可以呈现这一推理过程，以更好地理解模型是如何得出最终答案的。
+### Reasoning
+> 推理
 
-Stream reasoning output
-流式推理输出
+Many models are capable of performing **multi-step reasoning** to arrive at a conclusion. This involves breaking down complex problems into smaller, more manageable steps.
+> 许多模型能够执行多步推理以得出结论。这包括将复杂问题分解为更小、更易于处理的步骤。
 
-Complete reasoning output
-完整推理输出
+**If supported by the underlying model**, you can surface this reasoning process to better understand how the model arrived at its final answer.
+> 如果底层模型支持，你可以呈现这一推理过程，以更好地理解模型是如何得出最终答案的。
+
+``` python
+# Stream reasoning output
 for chunk in model.stream("Why do parrots have colorful feathers?"):
+    # NOTE: r["type"] == "reasoning"
     reasoning_steps = [r for r in chunk.content_blocks if r["type"] == "reasoning"]
     print(reasoning_steps if reasoning_steps else chunk.text)
+```
+
+``` python
+# Complete reasoning output
+response = model.invoke("Why do parrots have colorful feathers?")
+reasoning_steps = [b for b in response.content_blocks if b["type"] == "reasoning"]
+print(" ".join(step["reasoning"] for step in reasoning_steps))
+```
+
 Depending on the model, you can sometimes specify the level of effort it should put into reasoning. Similarly, you can request that the model turn off reasoning entirely. This may take the form of categorical “tiers” of reasoning (e.g., 'low' or 'high') or integer token budgets.
-根据模型的不同，有时你可以指定它在推理时应投入的努力程度。同样，你也可以要求模型完全关闭推理功能。这可能表现为推理的明确“层级”（例如，'low'或'high'）或整数令牌预算。
+> 根据模型的不同，有时你可以指定它在推理时应投入的努力程度。同样，你也可以要求模型完全关闭推理功能。这可能表现为推理的明确“层级”（例如，'low'或'high'）或整数令牌预算。
 For details, see the integrations page or reference for your respective chat model.
 有关详情，请参阅您所用聊天模型的集成页面或参考资料。
 ​
