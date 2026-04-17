@@ -1063,31 +1063,93 @@ See the integration page for your given provider for available tools and usage d
 ​
 ### Rate limiting
 Many chat model providers impose a limit on the number of invocations that can be made in a given time period. If you hit a rate limit, you will typically receive a rate limit error response from the provider, and will need to wait before making more requests.
-许多聊天模型提供商对特定时间段内的调用次数设置了限制。如果达到速率限制，您通常会收到提供商返回的速率限制错误响应，并且需要等待一段时间才能继续发送更多请求。
-To help manage rate limits, chat model integrations accept a rate_limiter parameter that can be provided during initialization to control the rate at which requests are made.
-为了帮助管理速率限制，聊天模型集成接受一个rate_limiter参数，该参数可在初始化期间提供，用于控制请求的发出速率。
-Initialize and use a rate limiter 初始化并使用速率限制器
+> 许多聊天模型提供商对特定时间段内的调用次数设置了限制。如果达到速率限制，您通常会收到提供商返回的速率限制错误响应，并且需要等待一段时间才能继续发送更多请求。
+
+To help manage rate limits, chat model integrations accept a `rate_limiter` parameter that can be provided during initialization to control the rate at which requests are made.
+> 为了帮助管理速率限制，聊天模型集成接受一个rate_limiter参数，该参数可在初始化期间提供，用于控制请求的发出速率。
+
+#### Initialize and use a rate limiter
+LangChain in comes with (an optional) built-in InMemoryRateLimiter. This limiter is thread safe and can be shared by multiple threads in the same process.
+> LangChain 内置了（可选的）内存速率限制器。该限制器具备线程安全性，可在同一进程中的多个线程间共享。
+
+``` python
+InMemoryRateLimiter(
+  self,
+  *,
+  requests_per_second: float = 1,
+  check_every_n_seconds: float = 0.1,
+  max_bucket_size: float = 1
+)
+```
+
+``` python
+from langchain_core.rate_limiters import InMemoryRateLimiter
+
+rate_limiter = InMemoryRateLimiter(
+    requests_per_second=0.1,  # 1 request every 10s
+    check_every_n_seconds=0.1,  # Check every 100ms whether allowed to make a request
+    max_bucket_size=10,  # Controls the maximum burst[突发] size.
+)
+
+model = init_chat_model(
+    model="gpt-5",
+    model_provider="openai",
+    rate_limiter=rate_limiter  
+)
+```
+The provided rate limiter can only limit the number of requests per unit time. It will not help if you need to also limit based on the size of the requests.
+> 现有的限流器仅能限制单位时间内的请求数量。若你还需要根据请求大小进行限制，该限流器将无法发挥作用。
 
 ​
-Base URL and proxy settings 基础URL和代理设置
+### Base URL and proxy settings
 You can configure a custom base URL for providers that implement the OpenAI Chat Completions API.
-对于实现了OpenAI聊天补全API的提供商，你可以配置自定义的基础URL。
-model_provider="openai" (or direct ChatOpenAI usage) targets the official OpenAI API specification. Provider-specific fields from routers and proxies may not be extracted or preserved.
-model_provider="openai"（或直接使用ChatOpenAI）针对的是官方OpenAI API规范。来自路由器和代理的特定于提供商的字段可能不会被提取或保留。
+> 对于实现了OpenAI聊天补全API的提供商，你可以配置自定义的基础URL。
+
+`model_provider="openai"` (or direct ChatOpenAI usage) targets the official OpenAI API specification. Provider-specific fields from routers and proxies may not be extracted or preserved.
+> model_provider="openai"（或直接使用ChatOpenAI）针对的是官方OpenAI API规范。来自路由器和代理的特定于提供商的字段可能不会被提取或保留。
+
 For OpenRouter and LiteLLM, prefer the dedicated integrations:
-对于OpenRouter和LiteLLM，建议优先使用专用集成：
-OpenRouter via ChatOpenRouter (langchain-openrouter)
-通过ChatOpenRouter （langchain-openrouter）
-LiteLLM via ChatLiteLLM / ChatLiteLLMRouter (langchain-litellm)
-LiteLLM通过ChatLiteLLM/ChatLiteLLMRouter（langchain-litellm）
-Custom base URL 自定义基础URL
+> 对于OpenRouter和LiteLLM，建议优先使用专用集成：
 
-HTTP proxy configuration HTTP代理配置
+- OpenRouter via ChatOpenRouter (langchain-openrouter)
+- LiteLLM via ChatLiteLLM / ChatLiteLLMRouter (langchain-litellm)
 
-​
-Log probabilities 对数概率
-Certain models can be configured to return token-level log probabilities representing the likelihood of a given token by setting the logprobs parameter when initializing the model:
-通过在初始化模型时设置logprobs参数，可以将某些模型配置为返回表示给定标记可能性的标记级对数概率：
+#### Custom base URL
+Many model providers offer OpenAI-compatible APIs (e.g., Together AI, vLLM). You can use init_chat_model with these providers by specifying the appropriate base_url parameter:
+> 许多模型服务商都提供兼容OpenAI的应用程序接口（如Together AI、vLLM）。你可以通过指定合适的base_url参数，使用init_chat_model来对接这些服务商。
+
+``` python
+model = init_chat_model(
+    model="MODEL_NAME",
+    model_provider="openai",
+    base_url="BASE_URL",
+    api_key="YOUR_API_KEY",
+)
+```
+
+When using direct chat model class instantiation, the parameter name may vary by provider. Check the respective [reference](https://docs.langchain.com/oss/python/integrations/providers/overview) for details.
+> 使用直接对话模型类实例化时，参数名称可能因服务提供商而异。详情请查阅相应的参考文档。
+
+#### HTTP proxy configuration
+For deployments requiring HTTP proxies, some model integrations support proxy configuration:
+> 对于需要HTTP代理的部署场景，部分模型集成组件支持代理配置：
+
+``` python
+from langchain_openai import ChatOpenAI
+
+model = ChatOpenAI(
+    model="gpt-4.1",
+    openai_proxy="http://proxy.example.com:8080"
+)
+```
+Proxy support varies by integration. Check the specific model provider’s reference for proxy configuration options.
+> ​代理支持情况因集成方式而异。请查阅具体模型提供商的参考文档，了解代理配置相关选项。
+
+### Log probabilities
+Certain models can be configured to return token-level log probabilities representing the likelihood of a given token by setting the `logprobs` parameter when initializing the model:
+> 通过在初始化模型时设置logprobs参数，可以将某些模型配置为返回表示给定标记可能性的标记级对数概率：
+
+``` python
 model = init_chat_model(
     model="gpt-4.1",
     model_provider="openai"
@@ -1095,18 +1157,20 @@ model = init_chat_model(
 
 response = model.invoke("Why do parrots talk?")
 print(response.response_metadata["logprobs"])
-​
-Token usage 令牌使用量
-A number of model providers return token usage information as part of the invocation response. When available, this information will be included on the AIMessage objects produced by the corresponding model. For more details, see the messages guide.
-许多模型提供商在调用响应中返回令牌使用信息。如果有此信息，它将包含在相应模型生成的AIMessage对象中。有关更多详细信息，请参阅messages指南。
-Some provider APIs, notably OpenAI and Azure OpenAI chat completions, require users opt-in to receiving token usage data in streaming contexts. See the streaming usage metadata section of the integration guide for details.
-一些提供商的API，特别是OpenAI和Azure OpenAI的聊天补全功能，要求用户在流式传输环境中选择接收令牌使用数据。详情请参见集成指南的流式传输使用元数据部分。
+​```
+
+### Token usage
+A number of model providers return token usage information as part of the invocation response. When available, this information will be included on the AIMessage objects produced by the corresponding model. 
+> 许多模型提供商在调用响应中返回令牌使用信息。如果有此信息，它将包含在相应模型生成的AIMessage对象中。
+
+Some provider APIs, notably OpenAI and Azure OpenAI chat completions, require users opt-in to receiving token usage data in streaming contexts. See the [streaming usage metadata](https://docs.langchain.com/oss/python/integrations/chat/openai#streaming-usage-metadata) section of the integration guide for details.
+> 一些提供商的API，特别是OpenAI和Azure OpenAI的聊天补全功能，要求用户在流式传输环境中选择接收令牌使用数据。详情请参见集成指南的流式传输使用元数据部分。
+
 You can track aggregate token counts across models in an application using either a callback or context manager, as shown below:
-您可以使用回调或上下文管理器跟踪应用程序中不同模型的总令牌计数，如下所示：
-Callback handler
-回调处理器
-Context manager
-上下文管理器
+> 您可以使用回调或上下文管理器跟踪应用程序中不同模型的总令牌计数，如下所示：
+
+#### Callback handler
+``` python
 from langchain.chat_models import init_chat_model
 from langchain_core.callbacks import UsageMetadataCallbackHandler
 
@@ -1117,6 +1181,23 @@ callback = UsageMetadataCallbackHandler()
 result_1 = model_1.invoke("Hello", config={"callbacks": [callback]})
 result_2 = model_2.invoke("Hello", config={"callbacks": [callback]})
 print(callback.usage_metadata)
+```
+
+#### Context manager
+``` python
+from langchain.chat_models import init_chat_model
+from langchain_core.callbacks import get_usage_metadata_callback
+
+model_1 = init_chat_model(model="gpt-4.1-mini")
+model_2 = init_chat_model(model="claude-haiku-4-5-20251001")
+
+with get_usage_metadata_callback() as cb:
+    model_1.invoke("Hello")
+    model_2.invoke("Hello")
+    print(cb.usage_metadata)
+```
+
+``` bash
 {
     'gpt-4.1-mini-2025-04-14': {
         'input_tokens': 8,
@@ -1132,39 +1213,64 @@ print(callback.usage_metadata)
         'input_token_details': {'cache_read': 0, 'cache_creation': 0}
     }
 }
+```
 ​
-Invocation config 调用配置
-When invoking a model, you can pass additional configuration through the config parameter using a RunnableConfig dictionary. This provides run-time control over execution behavior, callbacks, and metadata tracking.
-调用模型时，你可以通过config参数传递额外配置，该参数使用RunnableConfig字典。这提供了对执行行为、回调和元数据跟踪的运行时控制。
+### Invocation config
+When invoking a model, you can pass additional configuration through the `config` parameter using a `RunnableConfig` dictionary. This provides run-time control over execution behavior, callbacks, and metadata tracking.
+> 调用模型时，你可以通过config参数传递额外配置，该参数使用RunnableConfig字典。这提供了对执行行为、回调和元数据跟踪的运行时控制。
+
 Common configuration options include:
-常见的配置选项包括：
-Invocation with config 带配置调用
+> 常见的配置选项包括：
+
+``` python
+# Invocation with config
 response = model.invoke(
     "Tell me a joke",
     config={
-        "run_name": "joke_generation",      # Custom name for this run
-        "tags": ["humor", "demo"],          # Tags for categorization
-        "metadata": {"user_id": "123"},     # Custom metadata
-        "callbacks": [my_callback_handler], # Callback handlers
+        "run_name": "joke_generation",      # str: Custom name for this run
+        "tags": ["humor", "demo"],          # list[str]: Tags for categorization
+        "metadata": {"user_id": "123"},     # dict[str, Any]: Custom metadata
+        "callbacks": [my_callback_handler], # Callbacks: Callback handlers
     }
 )
-These configuration values are particularly useful when:
-以下情况下，这些配置值尤其有用：
-Debugging with LangSmith tracing 使用LangSmith追踪进行调试
-Implementing custom logging or monitoring
-实施自定义日志记录或监控
-Controlling resource usage in production
-在生产环境中控制资源使用
-Tracking invocations across complex pipelines
-在复杂管道中跟踪调用
-Key configuration attributes 关键配置属性
+```
+Other configuration options:
+- max_concurrency: int | None, Maximum number of parallel calls to make. If not provided, defaults to ThreadPoolExecutor's default.
 
-See full RunnableConfig reference for all supported attributes.
-查看完整的RunnableConfig参考以了解所有支持的属性。
+- recursion_limit: int, Maximum number of times a call can recurse. If not provided, defaults to 25.
+> 调用可递归的最大次数
+
+- configurable: dict[str, Any], Runtime values for attributes previously made configurable on this `Runnable`, or sub-`Runnable` objects, through `configurable_fields` or `configurable_alternatives`. Check output_schema for a description of the attributes that have been made configurable.
+> 通过configurable_fields或configurable_alternatives，此前已在该可运行对象或其子可运行对象上设为可配置的属性的运行时值。可查看output_schema以了解已设为可配置的属性说明。
+
+- run_id: uuid.UUID | None, Unique identifier for the tracer run for this call. If not provided, a new UUID will be generated.
+
+These configuration values are particularly useful when:
+> 以下情况下，这些配置值尤其有用：
+
+- Debugging with LangSmith tracing
+- Implementing custom logging or monitoring
+- Controlling resource usage in production
+- Tracking invocations across complex pipelines
+
+#### Key configuration attributes
+run_name: string, Identifies this specific invocation in logs and traces. Not inherited by sub-calls.
+
+tags: string[], Labels inherited by all sub-calls for filtering and organization in debugging tools.
 ​
-Configurable models 可配置模型
-You can also create a runtime-configurable model by specifying configurable_fields. If you don’t specify a model value, then 'model' and 'model_provider' will be configurable by default.
-你也可以通过指定configurable_fields来创建一个可在运行时配置的模型。如果你不指定模型值，那么'model'和'model_provider'将默认是可配置的。
+metadata: object, Custom key-value pairs for tracking additional context, inherited by all sub-calls.
+​
+max_concurrency: number, Controls the maximum number of parallel calls when using batch() or batch_as_completed().
+​
+callbacks: array, Handlers for monitoring and responding to events during execution.
+​
+recursion_limit: number, Maximum recursion depth for chains to prevent infinite loops in complex pipelines.
+​
+### Configurable models
+You can also create a runtime-configurable model by specifying `configurable_fields`. If you don’t specify a model value, then 'model' and 'model_provider' will be configurable by default.
+> 你也可以通过指定configurable_fields来创建一个可在运行时配置的模型。如果你不指定模型值，那么'model'和'model_provider'将默认是可配置的。
+
+``` python
 from langchain.chat_models import init_chat_model
 
 configurable_model = init_chat_model(temperature=0)
@@ -1177,8 +1283,108 @@ configurable_model.invoke(
     "what's your name",
     config={"configurable": {"model": "claude-sonnet-4-6"}},  # Run with Claude
 )
-Configurable model with default values
-具有默认值的可配置模型
+```
 
-Using a configurable model declaratively
+#### Configurable model with default values
+> 具有默认值的可配置模型
+
+We can create a configurable model with default model values, specify which parameters are configurable, and add prefixes to configurable params:
+> 我们可以创建一个带有默认模型值的可配置模型，指定哪些参数可配置，并为可配置参数添加前缀：
+
+``` python
+first_model = init_chat_model(
+        model="gpt-4.1-mini",
+        temperature=0,
+        configurable_fields=("model", "model_provider", "temperature", "max_tokens"),
+        config_prefix="first",  # Useful when you have a chain with multiple models
+)
+
+first_model.invoke("what's your name")
+```
+
+``` python
+first_model.invoke(
+    "what's your name",
+    config={
+        "configurable": {
+            "first_model": "claude-sonnet-4-6",
+            "first_temperature": 0.5,
+            "first_max_tokens": 100,
+        }
+    },
+)
+```
+
+See the [init_chat_model](https://github.com/meng-yijie1996/myNotes/blob/master/LLM/AgentGuide/LangChainReference/03_init_chat_model.md) reference for more details on configurable_fields and config_prefix.
+
+#### Using a configurable model declaratively
 声明式使用可配置模型
+
+We can call declarative operations like `bind_tools`, `with_structured_output`, `with_configurable`, etc. on a configurable model and chain a configurable model in the same way that we would a regularly instantiated chat model object.
+> 我们可以在可配置模型上调用bind_tools、with_structured_output、with_configurable等声明式操作，并且可以按照与常规实例化的聊天模型对象相同的方式，对可配置模型进行链式调用。
+
+``` python
+from pydantic import BaseModel, Field
+
+
+class GetWeather(BaseModel):
+    """Get the current weather in a given location"""
+
+        location: str = Field(description="The city and state, e.g. San Francisco, CA")
+
+
+class GetPopulation(BaseModel):
+    """Get the current population in a given location"""
+
+        location: str = Field(description="The city and state, e.g. San Francisco, CA")
+
+
+model = init_chat_model(temperature=0)
+model_with_tools = model.bind_tools([GetWeather, GetPopulation])
+
+model_with_tools.invoke(
+    "what's bigger in 2024 LA or NYC", config={"configurable": {"model": "gpt-4.1-mini"}}
+).tool_calls
+```
+
+``` bash
+[
+    {
+        'name': 'GetPopulation',
+        'args': {'location': 'Los Angeles, CA'},
+        'id': 'call_Ga9m8FAArIyEjItHmztPYA22',
+        'type': 'tool_call'
+    },
+    {
+        'name': 'GetPopulation',
+        'args': {'location': 'New York, NY'},
+        'id': 'call_jh2dEvBaAHRaw5JUDthOs7rt',
+        'type': 'tool_call'
+    }
+]
+```
+
+``` python
+model_with_tools.invoke(
+    "what's bigger in 2024 LA or NYC",
+    config={"configurable": {"model": "claude-sonnet-4-6"}},
+).tool_calls
+```
+
+``` bash
+[
+    {
+        'name': 'GetPopulation',
+        'args': {'location': 'Los Angeles, CA'},
+        'id': 'toolu_01JMufPf4F4t2zLj7miFeqXp',
+        'type': 'tool_call'
+    },
+    {
+        'name': 'GetPopulation',
+        'args': {'location': 'New York City, NY'},
+        'id': 'toolu_01RQBHcE8kEEbYTuuS8WqY1u',
+        'type': 'tool_call'
+    }
+]
+```
+
