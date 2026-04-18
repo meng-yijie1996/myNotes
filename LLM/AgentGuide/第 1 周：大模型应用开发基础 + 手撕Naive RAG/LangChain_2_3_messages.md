@@ -336,21 +336,26 @@ See the [RAG tutorial](todo) for an end-to-end example of building retrieval age
 ​> 参阅检索增强生成（RAG）教程，获取使用 LangChain 构建检索智能体的端到端示例。
 
 ## Message content
-You can think of a message’s content as the payload of data that gets sent to the model. Messages have a content attribute that is loosely-typed, supporting strings and lists of untyped objects (e.g., dictionaries). This allows support for provider-native structures directly in LangChain chat models, such as multimodal content and other data.
+You can think of a message’s content as the payload of data that gets sent to the model. Messages have a `content` attribute that is **loosely-typed**, supporting strings and lists of untyped objects (e.g., dictionaries). This allows support for provider-native structures directly in LangChain chat models, such as `multimodal` content and other data.
 > 你可以将消息的内容视为发送给模型的数据负载。消息具有一个content属性，该属性属于弱类型，支持字符串和无类型对象列表（例如字典）。这使得 LangChain 聊天模型可以直接支持提供商原生的结构，例如多模态内容和其他数据。
 
-Separately, LangChain provides dedicated content types for text, reasoning, citations, multi-modal data, server-side tool calls, and other message content. See content blocks below.
-此外，LangChain 为文本、推理、引用、多模态数据、服务端工具调用及其他消息内容提供了专用的内容类型。请参见下文的内容块。
-LangChain chat models accept message content in the content attribute.
-LangChain 聊天模型在 content 属性中接收消息内容。
-This may contain either: 这可能包含以下任一内容：
-A string 一个字符串
-A list of content blocks in a provider-native format
-以提供商原生格式表示的内容块列表
-A list of LangChain’s standard content blocks
-LangChain 标准内容块列表
+Separately, LangChain provides **dedicated content types** for text, reasoning, citations, multi-modal data, server-side tool calls, and other message content. See `content blocks` below.
+> 此外，LangChain 为文本、推理、引用、多模态数据、服务端工具调用及其他消息内容提供了专用的内容类型。请参见下文的内容块。
+
+LangChain chat models accept message content in the `content` attribute.
+> LangChain 聊天模型在 content 属性中接收消息内容。
+
+This may contain either: 
+> 这可能包含以下任一内容：
+- A string
+- A list of content blocks in a provider-native format
+> 以提供商原生格式表示的内容块列表
+- A list of LangChain’s standard content blocks
+> LangChain 标准内容块列表
+
 See below for an example using multimodal inputs:
-下面是一个使用多模态输入的示例：
+
+``` python
 from langchain.messages import HumanMessage
 
 # String content
@@ -367,17 +372,20 @@ human_message = HumanMessage(content_blocks=[
     {"type": "text", "text": "Hello, how are you?"},
     {"type": "image", "url": "https://example.com/image.jpg"},
 ])
-Specifying content_blocks when initializing a message will still populate message content, but provides a type-safe interface for doing so.
-在初始化消息时指定content_blocks</b>仍会填充消息的content，但会为此提供类型安全的接口。
+```
+
+Specifying `content_blocks` when initializing a message will still populate message content, but provides a type-safe interface for doing so.
+> 在初始化消息时指定content_blocks仍会填充消息的content，但会为此提供类型安全的接口。
 ​
-Standard content blocks 标准内容块
+### Standard content blocks
 LangChain provides a standard representation for message content that works across providers.
-LangChain 提供了一种适用于各类提供商的消息内容标准表示形式。
-Message objects implement a content_blocks property that will lazily parse the content attribute into a standard, type-safe representation. For example, messages generated from ChatAnthropic or ChatOpenAI will include thinking or reasoning blocks in the format of the respective provider, but can be lazily parsed into a consistent ReasoningContentBlock representation:
-消息对象实现了一个 content_blocks 属性，该属性会惰性地将 content 属性解析为标准化、类型安全的表示形式。例如，从 ChatAnthropic 或 ChatOpenAI 生成的消息会包含对应提供商格式的 thinking 或 reasoning 块，但可被惰性解析为一致的 ReasoningContentBlock 表示形式：
-Anthropic
-OpenAI
-开放人工智能
+> LangChain 提供了一种跨提供商的消息内容标准表示形式。
+
+Message objects implement a `content_blocks` property that will lazily parse the `content` attribute into a standard, type-safe representation. For example, messages generated from ChatAnthropic or ChatOpenAI will include thinking or reasoning blocks in the format of the respective provider, but can be lazily parsed into a consistent ReasoningContentBlock representation:
+> 消息对象实现了一个 content_blocks 属性，该属性会惰性地将 content 属性解析为标准化、类型安全的表示形式。例如，从 ChatAnthropic 或 ChatOpenAI 生成的消息会包含对应提供商格式的 thinking 或 reasoning 块，但可被惰性解析为一致的 ReasoningContentBlock 表示形式：
+
+##### Anthropic
+``` python
 from langchain.messages import AIMessage
 
 message = AIMessage(
@@ -388,42 +396,75 @@ message = AIMessage(
     response_metadata={"model_provider": "anthropic"}
 )
 message.content_blocks
+```
+
+``` bash
 [{'type': 'reasoning',
   'reasoning': '...',
   'extras': {'signature': 'WaUjzkyp...'}},
  {'type': 'text', 'text': '...'}]
+```
+
+##### OpenAI
+``` python
+from langchain.messages import AIMessage
+
+message = AIMessage(
+    content=[
+        {
+            "type": "reasoning",
+            "id": "rs_abc123",
+            "summary": [
+                {"type": "summary_text", "text": "summary 1"},
+                {"type": "summary_text", "text": "summary 2"},
+            ],
+        },
+        {"type": "text", "text": "...", "id": "msg_abc123"},
+    ],
+    response_metadata={"model_provider": "openai"}
+)
+message.content_blocks
+```
+
+``` bash
+[{'type': 'reasoning', 'id': 'rs_abc123', 'reasoning': 'summary 1'},
+ {'type': 'reasoning', 'id': 'rs_abc123', 'reasoning': 'summary 2'},
+ {'type': 'text', 'text': '...', 'id': 'msg_abc123'}]
+```
+
 See the integrations guides to get started with the inference provider of your choice.
-请查看集成指南，开始使用你选择的推理服务提供商。
-Serializing standard content 序列化标准内容
+> 请查看集成指南，开始使用你选择的推理服务提供商。
+
+##### Serializing standard content
+> 序列化标准内容
+
 If an application outside of LangChain needs access to the standard content block representation, you can opt-in to storing content blocks in message content.
-如果 LangChain 之外的应用需要访问标准的内容块表示形式，你可以选择在消息内容中存储内容块。
-To do this, you can set the LC_OUTPUT_VERSION environment variable to v1. Or, initialize any chat model with output_version="v1":
-要实现这一点，你可以将 LC_OUTPUT_VERSION 环境变量设置为 v1。或者，使用 output_version="v1" 初始化任何聊天模型：
+> 如果 LangChain 之外的应用需要访问标准的内容块表示形式，你可以选择在消息内容中存储内容块。
+
+To do this, you can set the `LC_OUTPUT_VERSION` environment variable to v1. Or, initialize any chat model with `output_version="v1"`:
+> 要实现这一点，你可以将 LC_OUTPUT_VERSION 环境变量设置为 v1。或者，使用 output_version="v1" 初始化任何聊天模型：
+
+``` python
 from langchain.chat_models import init_chat_model
 
 model = init_chat_model("gpt-5-nano", output_version="v1")
-​
-Multimodal 多模态
+​```
+
+### Multimodal
 Multimodality refers to the ability to work with data that comes in different forms, such as text, audio, images, and video. LangChain includes standard types for these data that can be used across providers.
-多模态指的是处理不同形式数据的能力，例如文本、音频、图像和视频。LangChain 为这些数据提供了可在各类提供商间通用的标准类型。
+> 多模态指的是处理不同形式数据的能力，例如文本、音频、图像和视频。LangChain 为这些数据提供了可在各类提供商间通用的标准类型。
+
 Chat models can accept multimodal data as input and generate it as output. Below we show short examples of input messages featuring multimodal data.
-聊天模型可以接受多模态数据作为输入并将其作为输出。下面我们展示一些包含多模态数据的输入消息的简短示例。
-Extra keys can be included top-level in the content block or nested in "extras": {"key": value}.
-额外的键可以在内容块中作为顶层键包含，也可以嵌套在"extras": {"key": value}中。
+> 聊天模型可以接受多模态数据作为输入并将其作为输出。下面我们展示一些包含多模态数据的输入消息的简短示例。
+
+Extra keys can be included top-level in the content block or nested in `"extras": {"key": value}`.
+> 额外的键可以在内容块中作为顶层键包含，也可以嵌套在"extras": {"key": value}中。
+
 OpenAI and AWS Bedrock Converse, for example, require a filename for PDFs. See the provider page for your chosen model for specifics.
 例如OpenAI和AWS Bedrock Converse需要为PDF文件指定文件名。请查看你所选模型的提供商页面了解具体细节。
 
-Image input
-图像输入
-
-PDF document input
-PDF 文档输入
-
-Audio input
-音频输入
-
-Video input
-视频输入
+##### Image input
+``` python
 # From URL
 message = {
     "role": "user",
@@ -454,35 +495,273 @@ message = {
         {"type": "image", "file_id": "file-abc123"},
     ]
 }
+```
+
+PDF document input
+``` python
+# From URL
+message = {
+    "role": "user",
+    "content": [
+        {"type": "text", "text": "Describe the content of this document."},
+        {"type": "file", "url": "https://example.com/path/to/document.pdf"},
+    ]
+}
+
+# From base64 data
+message = {
+    "role": "user",
+    "content": [
+        {"type": "text", "text": "Describe the content of this document."},
+        {
+            "type": "file",
+            "base64": "AAAAIGZ0eXBtcDQyAAAAAGlzb21tcDQyAAACAGlzb2...",
+            "mime_type": "application/pdf",
+        },
+    ]
+}
+
+# From provider-managed File ID
+message = {
+    "role": "user",
+    "content": [
+        {"type": "text", "text": "Describe the content of this document."},
+        {"type": "file", "file_id": "file-abc123"},
+    ]
+}
+```
+
+Audio input
+``` python
+# From base64 data
+message = {
+    "role": "user",
+    "content": [
+        {"type": "text", "text": "Describe the content of this audio."},
+        {
+            "type": "audio",
+            "base64": "AAAAIGZ0eXBtcDQyAAAAAGlzb21tcDQyAAACAGlzb2...",
+            "mime_type": "audio/wav",
+        },
+    ]
+}
+
+# From provider-managed File ID
+message = {
+    "role": "user",
+    "content": [
+        {"type": "text", "text": "Describe the content of this audio."},
+        {"type": "audio", "file_id": "file-abc123"},
+    ]
+}
+```
+
+Video input
+``` python
+# From base64 data
+message = {
+    "role": "user",
+    "content": [
+        {"type": "text", "text": "Describe the content of this video."},
+        {
+            "type": "video",
+            "base64": "AAAAIGZ0eXBtcDQyAAAAAGlzb21tcDQyAAACAGlzb2...",
+            "mime_type": "video/mp4",
+        },
+    ]
+}
+
+# From provider-managed File ID
+message = {
+    "role": "user",
+    "content": [
+        {"type": "text", "text": "Describe the content of this video."},
+        {"type": "video", "file_id": "file-abc123"},
+    ]
+}
+```
+
 Not all models support all file types. Check the model provider’s reference for supported formats and size limits.
-并非所有模型都支持所有文件类型。请查看模型提供商的参考资料，了解支持的格式和大小限制。
+> 并非所有模型都支持所有文件类型。请查看模型提供商的参考资料，了解支持的格式和大小限制。
 ​
-Content block reference 内容块参考
-Content blocks are represented (either when creating a message or accessing the content_blocks property) as a list of typed dictionaries. Each item in the list must adhere to one of the following block types:
-内容块会以类型化字典列表的形式呈现（无论是在创建消息时还是访问 content_blocks 属性时）。列表中的每个项都必须遵循以下某一种块类型：
-Core 核心
+### Content block reference
+> 内容块参考
 
-Multimodal 多模态
+Content blocks are represented (either when creating a message or accessing the `content_blocks` property) as a list of typed dictionaries. Each item in the list must adhere to one of the following block types:
+> 内容块会以类型化字典列表的形式呈现（无论是在创建消息时还是访问 content_blocks 属性时）。列表中的每个项都必须遵循以下某一种块类型：
 
-Tool Calling 工具调用
+#### Core
+##### TextContentBlock
+Purpose: Standard text output
 
-Server-Side Tool Execution 服务端工具执行
+​- type: string[required]. Always "text"
 
-Provider-Specific Blocks 供应商特定模块
+​- text: string[required]. The text content
+
+​- annotations: object[]. List of annotations for the text
+
+​- extras: object. Additional provider-specific data
+
+Example:
+``` bash
+{
+    "type": "text",
+    "text": "Hello world",
+    "annotations": []
+}
+```
+##### ReasoningContentBlock
+Purpose: Model reasoning steps
+
+​- type: string[required]. Always "reasoning"
+​- reasoning: string. The reasoning content
+​- extras: object. Additional provider-specific data
+
+Example:
+``` bash
+{
+    "type": "reasoning",
+    "reasoning": "The user is asking about...",
+    "extras": {"signature": "abc123"},
+}
+```
+
+#### Multimodal
+##### ImageContentBlock
+Purpose: Image data
+​
+- type: string[required]. Always "image"
+​- url: string. URL pointing to the image location.
+​- base64: string. Base64-encoded image data.
+​- id: string. Unique identifier for this content block (either generated by the provider or by LangChain).
+​- mime_type: string. Image MIME type (e.g., image/jpeg, image/png). Required for base64 data.
+
+##### AudioContentBlock
+Purpose: Audio data
+​
+- type: string[required]. Always "audio"
+​- url: string. URL pointing to the audio location.
+​- base64: string. Base64-encoded audio data.
+​- id: string. Unique identifier for this content block (either generated by the provider or by LangChain).
+​- mime_type: string. Audio MIME type (e.g., audio/mpeg, audio/wav). Required for base64 data.
+
+##### VideoContentBlock
+Purpose: Video data
+​
+- type: string[required]. Always "video"
+​- url: string. URL pointing to the video location.
+​- base64: string. Base64-encoded video data.
+- id: string. Unique identifier for this content block (either generated by the provider or by LangChain).
+​- mime_type: string. Video MIME type (e.g., video/mp4, video/webm). Required for base64 data.
+
+##### FileContentBlock
+Purpose: Generic files (PDF, etc)
+​
+- type: string[required]. Always "file"
+​- url: string. URL pointing to the file location.
+​- base64: string. Base64-encoded file data.
+​- id: string. Unique identifier for this content block (either generated by the provider or by LangChain).
+​- mime_type: string. File MIME type (e.g., application/pdf). Required for base64 data.
+
+##### PlainTextContentBlock
+Purpose: Document text (.txt, .md)
+​
+- type: string[required]. Always "text-plain"
+​- text: string. The text content
+​- mime_type: string. MIME type of the text (e.g., text/plain, text/markdown)
+
+#### Tool Calling
+##### ToolCall
+Purpose: Function calls
+​
+- type: string[required]. Always "tool_call"
+​- name: string[required]. Name of the tool to call
+​- args: object[required]. Arguments to pass to the tool
+​- id: string[required]. Unique identifier for this tool call
+
+Example:
+``` bash
+{
+    "type": "tool_call",
+    "name": "search",
+    "args": {"query": "weather"},
+    "id": "call_123"
+}
+```
+
+##### ToolCallChunk
+Purpose: Streaming tool call fragments
+​
+- type: string[required]. Always "tool_call_chunk"
+​- name: string. Name of the tool being called
+​- args: string. Partial tool arguments (may be incomplete JSON)
+​- id: string. Tool call identifier
+​- index: number | string. Position of this chunk in the stream
+
+##### InvalidToolCall
+Purpose: Malformed calls, intended to catch JSON parsing errors.
+​
+- type: string[required]. Always "invalid_tool_call"
+​- name: string. Name of the tool that failed to be called
+​- args: object. Arguments to pass to the tool
+​- error: string. Description of what went wrong
+
+#### Server-Side Tool Execution
+##### ServerToolCall
+Purpose: Tool call that is executed server-side.
+​
+- type: string[required]. Always "server_tool_call"
+​- id: string[required]. An identifier associated with the tool call.
+​- name: string[required]. The name of the tool to be called.
+​- args: string[required]. Partial tool arguments (may be incomplete JSON)
+
+##### ServerToolCallChunk
+Purpose: Streaming server-side tool call fragments
+​
+- type: string[required]. Always "server_tool_call_chunk"
+​- id: string. An identifier associated with the tool call.
+​- name: string. Name of the tool being called
+​- args: string. Partial tool arguments (may be incomplete JSON)
+​- index: number | string. Position of this chunk in the stream
+
+##### ServerToolResult
+Purpose: Search results
+​
+- type: string[required]. Always "server_tool_result"
+​- tool_call_id: string[required]. Identifier of the corresponding server tool call.​
+- id: string. Identifier associated with the server tool result.
+​- status: string[required]. Execution status of the server-side tool. "success" or "error".
+​- output: Output of the executed tool.
+
+#### Provider-Specific Blocks
+##### NonStandardContentBlock
+Purpose: Provider-specific escape hatch
+​> 特定于服务提供商的应急出口
+
+- type: string[required]. Always "non_standard"
+​- value: object[required]. Provider-specific data structure
+
+Usage: For experimental or provider-unique features
+> 用于实验性或服务提供商独有的功能
+
+Additional provider-specific content types may be found within the reference documentation of each model provider.
+> 各模型提供商的参考文档中可能会包含特定于提供商的内容类型。
 
 View the canonical type definitions in the API reference.
-在API 参考文档中查看规范的类型定义。
+> 在API 参考文档中查看规范的类型定义。
+
 Content blocks were introduced as a new property on messages in LangChain v1 to standardize content formats across providers while maintaining backward compatibility with existing code.
-在 LangChain v1 中，内容块作为消息的新属性被引入，目的是在各供应商之间标准化内容格式，同时保持与现有代码的向后兼容性。
+> 在 LangChain v1 中，内容块作为消息的新属性被引入，目的是在各供应商之间标准化内容格式，同时保持与现有代码的向后兼容性。
+
 Content blocks are not a replacement for the content property, but rather a new property that can be used to access the content of a message in a standardized format.
-内容块并非content属性的替代品，而是一种可用于以标准化格式访问消息内容的新属性。
+> 内容块并非content属性的替代品，而是一种可用于以标准化格式访问消息内容的新属性。
 ​
-Use with chat models 与聊天模型配合使用
-Chat models accept a sequence of message objects as input and return an AIMessage as output. Interactions are often stateless, so that a simple conversational loop involves invoking a model with a growing list of messages.
-聊天模型接收消息对象序列作为输入，并返回AIMessage作为输出。交互通常是无状态的，因此简单的对话循环需要使用不断增长的消息列表调用模型。
+## Use with chat models
+> 与聊天模型配合使用
+
+Chat models accept a sequence of message objects as input and return an AIMessage as output. Interactions are often **stateless**, so that a simple conversational loop involves invoking a model with a growing list of messages.
+> 聊天模型接收消息对象序列作为输入，并返回AIMessage作为输出。交互通常是无状态的，因此简单的对话循环需要使用不断增长的消息列表调用模型。
+
 Refer to the below guides to learn more:
-请参考以下指南了解更多信息：
-Built-in features for persisting and managing conversation histories
-持久化和管理对话历史的内置功能
-Strategies for managing context windows, including trimming and summarizing messages
-管理上下文窗口的策略，包括消息的修剪与摘要生成
+- Built-in features for persisting and managing conversation histories
+- Strategies for managing context windows, including trimming and summarizing messages
