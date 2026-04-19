@@ -289,10 +289,13 @@ for event in agent.stream(
 
 ### Summarize messages
 The problem with trimming or removing messages, as shown above, is that you may lose information from culling of the message queue. Because of this, some applications benefit from a more sophisticated approach of summarizing the message history using a chat model.
-如上所示，精简或删除消息存在一个问题：你可能会因消息队列的筛选而丢失信息。正因为如此，一些应用程序可以从更复杂的方法中获益——即使用聊天模型来总结聊天历史。
-Summary
-To summarize message history in an agent, use the built-in SummarizationMiddleware:
-要在智能体中汇总消息历史，请使用内置的 SummarizationMiddleware：
+> 如上所示，精简或删除消息存在一个问题：你可能会因消息队列的筛选而丢失信息。正因为如此，一些应用程序可以从更复杂的方法中获益——即使用聊天模型来总结聊天历史。
+![summarize](../pics/summarize.png "summarize")
+
+To summarize message history in an agent, use the built-in `SummarizationMiddleware`:
+> 要在智能体中汇总消息历史，请使用内置的 SummarizationMiddleware：
+
+``` python
 from langchain.agents import create_agent
 from langchain.agents.middleware import SummarizationMiddleware
 from langgraph.checkpoint.memory import InMemorySaver
