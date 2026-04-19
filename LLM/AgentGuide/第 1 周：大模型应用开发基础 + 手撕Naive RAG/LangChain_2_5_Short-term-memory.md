@@ -308,7 +308,7 @@ agent = create_agent(
     model="gpt-4.1",
     tools=[],
     middleware=[
-        SummarizationMiddleware(
+        SummarizationMiddleware(   # NOTE
             model="gpt-4.1-mini",
             trigger=("tokens", 4000),
             keep=("messages", 20)
@@ -329,20 +329,23 @@ final_response["messages"][-1].pretty_print()
 
 Your name is Bob!
 """
+```
+
 See SummarizationMiddleware for more configuration options.
-有关更多配置选项，请参阅SummarizationMiddleware。
 ​
-Access memory 访问记忆
-You can access and modify the short-term memory (state) of an agent in several ways:
-你可以通过多种方式访问和修改智能体的短期记忆（状态）：
+## Access memory
+You can **access and modify** the short-term memory (state) of an agent in several ways:
+> 你可以通过多种方式访问和修改智能体的短期记忆（状态）：
 ​
-Tools 工具
-​
-Read short-term memory in a tool 读取工具中的短期记忆
-Access short term memory (state) in a tool using the runtime parameter (typed as ToolRuntime).
-使用runtime参数（类型为ToolRuntime）在工具中访问短期记忆（状态）。
-The runtime parameter is hidden from the tool signature (so the model doesn’t see it), but the tool can access the state through it.
-runtime参数对工具签名隐藏（因此模型无法看到它），但工具可以通过它访问状态。
+### Tools
+#### Read short-term memory in a tool
+Access short term memory (state) in a tool using the `runtime` parameter (typed as `ToolRuntime`).
+> 使用runtime参数（类型为ToolRuntime）在工具中访问短期记忆（状态）。
+
+The `runtime` parameter is hidden from the tool signature (so the model doesn’t see it), but the tool can access the state through it.
+> runtime参数对工具签名隐藏（因此模型无法看到它），但工具可以通过它访问状态。
+
+``` python
 from langchain.agents import create_agent, AgentState
 from langchain.tools import tool, ToolRuntime
 
@@ -355,7 +358,7 @@ def get_user_info(
     runtime: ToolRuntime
 ) -> str:
     """Look up user info."""
-    user_id = runtime.state["user_id"]
+    user_id = runtime.state["user_id"]  # NOTE
     return "User is John Smith" if user_id == "user_123" else "Unknown user"
 
 agent = create_agent(
@@ -370,12 +373,16 @@ result = agent.invoke({
 })
 print(result["messages"][-1].content)
 # > User is John Smith.
-​
-Write short-term memory from tools 通过工具写入短时记忆
+```
+
+#### Write short-term memory from tools
 To modify the agent’s short-term memory (state) during execution, you can return state updates directly from the tools.
-要在执行过程中修改智能体的短期记忆（状态），你可以直接从工具中返回状态更新。
+> 要在执行过程中修改智能体的短期记忆（状态），你可以直接从工具中返回状态更新。
+
 This is useful for persisting intermediate results or making information accessible to subsequent tools or prompts.
-这对于保留中间结果或让后续工具或提示能够访问信息非常有用。
+> 这对于保留中间结果或让后续工具或提示能够访问信息非常有用。
+
+``` python
 from langchain.tools import tool, ToolRuntime
 from langchain_core.runnables import RunnableConfig
 from langchain.messages import ToolMessage
@@ -436,8 +443,9 @@ agent.invoke(
     {"messages": [{"role": "user", "content": "greet the user"}]},
     context=CustomContext(user_id="user_123"),
 )
-​
-Prompt 提示词
+```
+
+### Prompt
 Access short term memory (state) in middleware to create dynamic prompts based on conversation history or custom state fields.
 在中间件中访问短期记忆（状态），以基于对话历史或自定义状态字段创建动态提示词。
 from langchain.agents import create_agent
