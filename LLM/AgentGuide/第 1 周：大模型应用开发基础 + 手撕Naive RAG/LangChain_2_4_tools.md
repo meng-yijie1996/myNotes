@@ -1,17 +1,20 @@
 # Tools
 
 Tools extend what agents can do—letting them fetch real-time data, execute code, query external databases, and take actions in the world.
-工具拓展了智能体的能力——让它们能够获取实时数据、执行代码、查询外部数据库，并在现实世界中采取行动。
+> 工具拓展了智能体的能力——让它们能够获取实时数据、执行代码、查询外部数据库，并在现实世界中采取行动。
+
 Under the hood, tools are callable functions with well-defined inputs and outputs that get passed to a chat model. The model decides when to invoke a tool based on the conversation context, and what input arguments to provide.
-在底层，工具是具有明确定义的输入和输出的可调用函数，这些函数会被传递给聊天模型。模型会根据对话上下文决定何时调用工具，以及提供哪些输入参数。
-For details on how models handle tool calls, see Tool calling.
-有关模型如何处理工具调用的详细信息，请参见工具调用。
+> 在底层，工具是具有明确定义的输入和输出的可调用函数，这些函数会被传递给聊天模型。模型会根据对话上下文决定何时调用工具，以及提供哪些输入参数。
+
+For details on how models handle tool calls, see [Tool calling](https://github.com/meng-yijie1996/myNotes/blob/master/LLM/AgentGuide/%E7%AC%AC%201%20%E5%91%A8%EF%BC%9A%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E5%9F%BA%E7%A1%80%20%2B%20%E6%89%8B%E6%92%95Naive%20RAG/LangChain_2_2_model.md#tool-calling).
+> 有关模型如何处理工具调用的详细信息，请参见工具调用。
 ​
-Create tools 创建工具
-​
-Basic tool definition 基础工具定义
-The simplest way to create a tool is with the @tool decorator. By default, the function’s docstring becomes the tool’s description that helps the model understand when to use it:
-创建工具最简单的方法是使用 @tool 装饰器。默认情况下，函数的文档字符串会成为工具的描述，帮助模型了解何时使用该工具：
+## Create tools
+### Basic tool definition
+The simplest way to create a tool is with the `@tool` decorator. By default, the function’s docstring becomes the tool’s description that helps the model understand when to use it:
+> 创建工具最简单的方法是使用 @tool 装饰器。默认情况下，函数的文档字符串会成为工具的描述，帮助模型了解何时使用该工具：
+
+``` python
 from langchain.tools import tool
 
 @tool
@@ -23,42 +26,47 @@ def search_database(query: str, limit: int = 10) -> str:
         limit: Maximum number of results to return
     """
     return f"Found {limit} results for '{query}'"
-Type hints are required as they define the tool’s input schema. The docstring should be informative and concise to help the model understand the tool’s purpose.
-类型提示是必需的，因为它们定义了工具的输入模式。文档字符串应具有信息性和简洁性，以帮助模型理解工具的用途。
+```
+
+**Type hints** are required as they define the tool’s input schema. The docstring should be **informative and concise** to help the model understand the tool’s purpose.
+> 类型提示是必需的，因为它们定义了工具的输入模式。文档字符串应具有信息性和简洁性，以帮助模型理解工具的用途。
+
 Server-side tool use: Some chat models feature built-in tools (web search, code interpreters) that are executed server-side. See Server-side tool use for details.
-服务端工具使用：部分聊天模型内置了在服务端执行的工具（网络搜索、代码解释器）。有关详细信息，请参阅服务端工具使用。
-Prefer snake_case for tool names (e.g., web_search instead of Web Search). Some model providers have issues with or reject names containing spaces or special characters with errors. Sticking to alphanumeric characters, underscores, and hyphens helps to improve compatibility across providers.
-工具名称优先使用 snake_case（例如，用 web_search 而非 Web Search）。部分模型提供商对包含空格或特殊字符的名称存在问题或会因报错拒绝使用这类名称。只使用字母数字、下划线和连字符有助于提升跨提供商的兼容性。
+> 服务端工具使用：部分聊天模型内置了在服务端执行的工具（网络搜索、代码解释器）。有关详细信息，请参阅服务端工具使用。
+
+Prefer `snake_case` for tool names (e.g., web_search instead of Web Search). Some model providers have issues with or reject names containing spaces or special characters with errors. Sticking to alphanumeric characters, underscores, and hyphens helps to improve compatibility across providers.
+> 工具名称优先使用 snake_case（例如，用 web_search 而非 Web Search）。部分模型提供商对包含空格或特殊字符的名称存在问题或会因报错拒绝使用这类名称。只使用字母数字、下划线和连字符有助于提升跨提供商的兼容性。
 ​
-Customize tool properties 自定义工具属性
-​
-Custom tool name 自定义工具名称
+### Customize tool properties
+#### Custom tool name
 By default, the tool name comes from the function name. Override it when you need something more descriptive:
-默认情况下，工具名称来源于函数名称。如需更具描述性的名称，请对其进行覆盖：
-@tool("web_search")  # Custom name
+> 默认情况下，工具名称来源于函数名称。如需更具描述性的名称，请对其进行覆盖：
+
+``` python
+@tool("web_search")  # NOTE: Custom name
 def search(query: str) -> str:
     """Search the web for information."""
     return f"Results for: {query}"
 
 print(search.name)  # web_search
-​
-Custom tool description 自定义工具描述
+```
+
+#### Custom tool description
 Override the auto-generated tool description for clearer model guidance:
-重写自动生成的工具描述，以获得更清晰的模型指导：
+> 重写自动生成的工具描述，以获得更清晰的模型指导：
+
+``` python
 @tool("calculator", description="Performs arithmetic calculations. Use this for any math problems.")
 def calc(expression: str) -> str:
     """Evaluate mathematical expressions."""
-    return str(eval(expression))
-​
-Advanced schema definition 高级架构定义
-Define complex inputs with Pydantic models or JSON schemas:
-使用 Pydantic 模型或 JSON 模式定义复杂输入：
+    return str(eval(expression))​
+```
 
-Pydantic model
-Pydantic 模型
+### Advanced schema definition
+Define **complex inputs** with Pydantic models or JSON schemas:
 
-JSON Schema
-JSON 模式
+##### Pydantic model
+``` python
 from pydantic import BaseModel, Field
 from typing import Literal
 
@@ -82,27 +90,54 @@ def get_weather(location: str, units: str = "celsius", include_forecast: bool = 
     if include_forecast:
         result += "\nNext 5 days: Sunny"
     return result
+
+```
+
+##### JSON Schema
+``` python
+weather_schema = {
+    "type": "object",
+    "properties": {
+        "location": {"type": "string"},
+        "units": {"type": "string"},
+        "include_forecast": {"type": "boolean"}
+    },
+    "required": ["location", "units", "include_forecast"]
+}
+
+@tool(args_schema=weather_schema)
+def get_weather(location: str, units: str = "celsius", include_forecast: bool = False) -> str:
+    """Get current weather and optional forecast."""
+    temp = 22 if units == "celsius" else 72
+    result = f"Current weather in {location}: {temp} degrees {units[0].upper()}"
+    if include_forecast:
+        result += "\nNext 5 days: Sunny"
+    return result
+```
 ​
-Reserved argument names 保留的参数名称
+### Reserved argument names
 The following parameter names are reserved and cannot be used as tool arguments. Using these names will cause runtime errors.
-以下参数名称为保留名称，不能用作工具参数。使用这些名称会导致运行时错误。
-Parameter name 参数名称	Purpose 用途
-config	Reserved for passing RunnableConfig to tools internally
-保留用于在内部将 RunnableConfig 传递给工具
-runtime	Reserved for ToolRuntime parameter (accessing state, context, store)
-保留给 ToolRuntime 参数（用于访问状态、上下文、存储）
+> 以下参数名称为保留名称，不能用作工具参数。使用这些名称会导致运行时错误。
+
+|Parameter name|Purpose|
+|:---|:---|
+|config|Reserved for passing RunnableConfig to tools internally<br>保留用于在内部将 RunnableConfig 传递给工具|
+|runtime|Reserved for ToolRuntime parameter (accessing state, context, store)|
+
 To access runtime information, use the ToolRuntime parameter instead of naming your own arguments config or runtime.
-要访问运行时信息，请使用ToolRuntime参数，而不是自行命名config或runtime参数。
+> 要访问运行时信息，请使用ToolRuntime参数，而不是自行命名config或runtime参数。
 ​
-Access context 访问上下文
-Tools are most powerful when they can access runtime information like conversation history, user data, and persistent memory. This section covers how to access and update this information from within your tools.
-工具在能够访问对话历史、用户数据和持久化内存等运行时信息时，功能最为强大。本节将介绍如何在工具内部访问和更新这些信息。
-Tools can access runtime information through the ToolRuntime parameter, which provides:
-工具可通过ToolRuntime参数访问运行时信息，该参数提供以下内容：
-Component 组件	Description 描述	Use case 使用场景
-State 状态	Short-term memory - mutable data that exists for the current conversation (messages, counters, custom fields)
-短期记忆——存在于当前对话中的可变数据（消息、计数器、自定义字段）
-Access conversation history, track tool call counts
+## Access context
+Tools are most powerful when they can access runtime information like conversation history, user data, and persistent memory. This section covers how to **access and update** this information from within your tools.
+> 工具在能够访问对话历史、用户数据和持久化内存等运行时信息时，功能最为强大。本节将介绍如何在工具内部访问和更新这些信息。
+
+Tools can access runtime information through the `ToolRuntime` parameter, which provides:
+> 工具可通过ToolRuntime参数访问运行时信息，该参数提供以下内容：
+
+|Component|Description|Use case|
+|:---|:---|:---|
+|**State**|Short-term memory - mutable data that exists for the current conversation (messages, counters, custom fields) <br> 短期记忆——存在于当前对话中的可变数据（消息、计数器、自定义字段）|Access conversation history, track tool call counts|
+
 访问对话历史，记录工具调用次数
 Context 上下文	Immutable configuration passed at invocation time (user IDs, session info)
 调用时传入的不可变配置（用户 ID、会话信息）
