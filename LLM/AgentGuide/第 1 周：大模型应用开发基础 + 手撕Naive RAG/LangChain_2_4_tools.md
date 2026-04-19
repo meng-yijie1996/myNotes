@@ -136,97 +136,83 @@ Tools can access runtime information through the `ToolRuntime` parameter, which 
 
 |Component|Description|Use case|
 |:---|:---|:---|
-|**State**|Short-term memory - mutable data that exists for the current conversation (messages, counters, custom fields) <br> 短期记忆——存在于当前对话中的可变数据（消息、计数器、自定义字段）|Access conversation history, track tool call counts|
+|**State**|Short-term memory - mutable data that exists for the current conversation (messages, counters, custom fields) <br> 短期记忆——存在于当前对话中的可变数据（消息、计数器、自定义字段）|Access conversation history, track tool call counts <br> 访问对话历史，记录工具调用次数|
+|Context|Immutable configuration passed at invocation time (user IDs, session info) <br> 调用时传入的不可变配置（用户 ID、会话信息）|Personalize responses based on user identity <br> 根据用户身份个性化回复|
+|Store|Long-term memory - persistent data that survives across conversations <br> 长期记忆——可在多次对话中留存的持久化数据|Save user preferences, maintain knowledge base <br> 保存用户偏好设置，维护知识库|
+|Stream Writer|Emit real-time updates during tool execution <br> 在工具执行期间发送实时更新|Show progress for long-running operations <br> 为耗时操作显示进度|
+|Execution Info|Identity and retry information for the current execution (thread ID, run ID, attempt number) <br> 当前执行的身份和重试信息（线程 ID、运行 ID、尝试次数）|Access thread/run IDs, adjust behavior based on retry state <br> 获取线程/运行ID，根据重试状态调整行为|
+|Server Info|Server-specific metadata when running on LangGraph Server (assistant ID, graph ID, authenticated user) <br> 在 LangGraph Server 上运行时的服务器特定元数据（助手 ID、图表 ID、已认证用户）|Access assistant ID, graph ID, or authenticated user info <br> 获取助手ID、图表ID或已认证的用户信息|
+|Config|RunnableConfig for the execution <br>用于执行的RunnableConfig|Access callbacks, tags, and metadata <br> 访问回调函数、标签和元数据|
+|Tool Call ID|Unique identifier for the current tool invocation <br> 当前工具调用的唯一标识符|Correlate tool calls for logs and model invocations <br> 为日志和模型调用关联工具调用|
 
-访问对话历史，记录工具调用次数
-Context 上下文	Immutable configuration passed at invocation time (user IDs, session info)
-调用时传入的不可变配置（用户 ID、会话信息）
-Personalize responses based on user identity
-根据用户身份个性化回复
-Store 存储	Long-term memory - persistent data that survives across conversations
-长期记忆——可在多次对话中留存的持久化数据
-Save user preferences, maintain knowledge base
-保存用户偏好设置，维护知识库
-Stream Writer 流式写入器	Emit real-time updates during tool execution
-在工具执行期间发送实时更新
-Show progress for long-running operations
-为耗时操作显示进度
-Execution Info 执行信息	Identity and retry information for the current execution (thread ID, run ID, attempt number)
-当前执行的身份和重试信息（线程 ID、运行 ID、尝试次数）
-Access thread/run IDs, adjust behavior based on retry state
-获取线程/运行ID，根据重试状态调整行为
-Server Info 服务器信息	Server-specific metadata when running on LangGraph Server (assistant ID, graph ID, authenticated user)
-在 LangGraph Server 上运行时的服务器特定元数据（助手 ID、图表 ID、已认证用户）
-Access assistant ID, graph ID, or authenticated user info
-获取助手ID、图表ID或已认证的用户信息
-Config 配置	RunnableConfig for the execution RunnableConfig 用于执行	Access callbacks, tags, and metadata
-访问回调函数、标签和元数据
-Tool Call ID 工具调用ID	Unique identifier for the current tool invocation
-当前工具调用的唯一标识符
-Correlate tool calls for logs and model invocations
-为日志和模型调用关联工具调用
+```mermaid theme={"theme":{"light":"catppuccin-latte","dark":"catppuccin-mocha"}}
+graph LR
+    %% Runtime Context
+    subgraph "🔧 Tool Runtime Context"
+        A[Tool Call] --> B[ToolRuntime]
+        B --> C[State Access]
+        B --> D[Context Access]
+        B --> E[Store Access]
+        B --> F[Stream Writer]
+    end
 
+    %% Available Resources
+    subgraph "📊 Available Resources"
+        C --> G[Messages]
+        C --> H[Custom State]
+        D --> I[User ID]
+        D --> J[Session Info]
+        E --> K[Long-term Memory]
+        E --> L[User Preferences]
+    end
 
+    %% Tool Capabilities
+    subgraph "⚡ Enhanced Tool Capabilities"
+        M[Context-Aware Tools]
+        N[Stateful Tools]
+        O[Memory-Enabled Tools]
+        P[Streaming Tools]
+    end
 
+    %% Connections
+    G --> M
+    H --> N
+    I --> M
+    J --> M
+    K --> O
+    L --> O
+    F --> P
 
+    classDef trigger fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#14532D
+    classDef process fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#1E3A8A
+    classDef output fill:#F3E8FF,stroke:#9333EA,stroke-width:2px,color:#581C87
+    classDef neutral fill:#F3F4F6,stroke:#9CA3AF,stroke-width:2px,color:#374151
 
+    class A trigger
+    class B,C,D,E,F process
+    class G,H,I,J,K,L neutral
+    class M,N,O,P output
+```
 
-
-⚡ Enhanced Tool Capabilities
-
-📊 Available Resources
-
-🔧 Tool Runtime Context
-
-Tool Call
-
-ToolRuntime
-
-State Access
-
-Context Access
-
-Store Access
-
-Stream Writer
-
-Messages
-
-Custom State
-
-User ID
-
-Session Info
-
-Long-term Memory
-
-User Preferences
-
-Context-Aware Tools
-
-Stateful Tools
-
-Memory-Enabled Tools
-
-Streaming Tools
-
-​
-Short-term memory (State) 短期记忆（状态）
+### Short-term memory (State)
 State represents short-term memory that exists for the duration of a conversation. It includes the message history and any custom fields you define in your graph state.
-状态表示在一次对话期间存在的短期记忆。它包含消息历史以及你在图状态中定义的任何自定义字段。
-Add runtime: ToolRuntime to your tool signature to access state. This parameter is automatically injected and hidden from the LLM - it won’t appear in the tool’s schema.
-在你的工具签名中添加 runtime: ToolRuntime 以访问状态。此参数会被自动注入并对 LLM 隐藏——它不会出现在工具的架构中。
+> 状态表示在一次对话期间存在的短期记忆。它包含消息历史以及你在图状态中定义的任何自定义字段。
+
+Add `runtime`: `ToolRuntime` to your tool signature to access state. This parameter is automatically injected and hidden from the LLM - it won’t appear in the tool’s schema.
+> 在你的工具签名【即参数】中添加 runtime: ToolRuntime 以访问状态。此参数会被自动注入并对 LLM 隐藏——它不会出现在工具的架构中。
 ​
-Access state 访问状态
-Tools can access the current conversation state using runtime.state:
-工具可以通过runtime.state访问当前的对话状态：
+#### Access state
+Tools can access the current conversation state using `runtime.state`:
+> 工具可以通过runtime.state访问当前的对话状态：
+
+``` python
 from langchain.tools import tool, ToolRuntime
 from langchain.messages import HumanMessage
 
 @tool
-def get_last_user_message(runtime: ToolRuntime) -> str:
+def get_last_user_message(runtime: ToolRuntime) -> str: # NOTE1
     """Get the most recent message from the user."""
-    messages = runtime.state["messages"]
+    messages = runtime.state["messages"]                # NOTE2
 
     # Find the last human message
     for message in reversed(messages):
@@ -242,29 +228,38 @@ def get_user_preference(
     runtime: ToolRuntime
 ) -> str:
     """Get a user preference value."""
-    preferences = runtime.state.get("user_preferences", {})
+    preferences = runtime.state.get("user_preferences", {}) # NOTE3
     return preferences.get(pref_name, "Not set")
-The runtime parameter is hidden from the model. For the example above, the model only sees pref_name in the tool schema.
+```
+
+The `runtime` parameter is hidden from the model. For the example above, the model only sees `pref_name` in the tool schema.
 runtime参数对模型隐藏。以上示例中，模型在工具架构中只能看到pref_name。
 ​
-Update state 更新状态
-Use Command to update the agent’s state. This is useful for tools that need to update custom state fields:
-使用Command更新智能体的状态。这对于需要更新自定义状态字段的工具非常有用：
+#### Update state
+Use `Command` to update the agent’s state. This is useful for tools that need to update custom state fields:
+> 使用Command更新智能体的状态。这对于需要更新自定义状态字段的工具非常有用：
+
+``` python
 from langgraph.types import Command
 from langchain.tools import tool
 
 @tool
-def set_user_name(new_name: str) -> Command:
+def set_user_name(new_name: str) -> Command:                # NOTE1
     """Set the user's name in the conversation state."""
-    return Command(update={"user_name": new_name})
-When tools update state variables, consider defining a reducer for those fields. Since LLMs can call multiple tools in parallel, a reducer determines how to resolve conflicts when the same state field is updated by concurrent tool calls.
-当工具更新状态变量时，考虑为这些字段定义一个reducer。由于大语言模型（LLMs）可以并行调用多个工具，当同一状态字段被并发的工具调用更新时，reducer 会确定如何解决冲突。
+    return Command(update={"user_name": new_name})          # NOTE2
+```
+
+When tools update state variables, consider defining a `reducer` for those fields. Since LLMs can call multiple tools in parallel, a reducer determines how to **resolve conflicts** when the same state field is updated by concurrent tool calls.
+> 当工具更新状态变量时，考虑为这些字段定义一个reducer。由于大语言模型（LLMs）可以并行调用多个工具，当同一状态字段被并发的工具调用更新时，reducer 会确定如何解决冲突。
 ​
-Context 上下文
+### Context
 Context provides immutable configuration data that is passed at invocation time. Use it for user IDs, session details, or application-specific settings that shouldn’t change during a conversation.
-上下文提供在调用时传递的不可变配置数据。可将其用于用户 ID、会话详情或对话期间不应更改的特定于应用程序的设置。
-Access context through runtime.context:
-通过runtime.context访问上下文：
+> 上下文提供在调用时传递的不可变配置数据。可将其用于用户 ID、会话详情或对话期间不应更改的特定于应用程序的设置。
+
+Access context through `runtime.context`:
+> 通过`runtime.context`访问上下文：
+
+``` python
 from dataclasses import dataclass
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
@@ -291,9 +286,9 @@ class UserContext:
     user_id: str
 
 @tool
-def get_account_info(runtime: ToolRuntime[UserContext]) -> str:
+def get_account_info(runtime: ToolRuntime[UserContext]) -> str:    # NOTE1
     """Get the current user's account information."""
-    user_id = runtime.context.user_id
+    user_id = runtime.context.user_id                              # NOTE2
 
     if user_id in USER_DATABASE:
         user = USER_DATABASE[user_id]
@@ -312,14 +307,19 @@ result = agent.invoke(
     {"messages": [{"role": "user", "content": "What's my current balance?"}]},
     context=UserContext(user_id="user123")
 )
-​
-Long-term memory (Store) 长时记忆（存储）
-The BaseStore provides persistent storage that survives across conversations. Unlike state (short-term memory), data saved to the store remains available in future sessions.
-BaseStore 提供跨对话持续存在的持久化存储。与状态（短期记忆）不同，保存到该存储中的数据在未来会话中仍然可用。
-Access the store through runtime.store. The store uses a namespace/key pattern to organize data:
-通过 runtime.store 访问存储库。该存储库使用命名空间/键模式来组织数据：
-For production deployments, use a persistent store implementation like PostgresStore instead of InMemoryStore. See the memory documentation for setup details.
-对于生产环境部署，请使用 PostgresStore 等持久化存储实现，而非 InMemoryStore。有关设置的详细信息，请参阅 内存文档。
+```
+
+### Long-term memory (Store) 
+The `BaseStore` provides persistent storage that survives across conversations. Unlike state (short-term memory), data saved to the store remains available in future sessions.
+> BaseStore 提供跨对话持续存在的持久化存储。与state（短期记忆）不同，保存到该存储中的数据在未来会话中仍然可用。
+
+Access the store through `runtime.store`. The store uses a namespace/key pattern to organize data:
+> 通过 runtime.store 访问存储库。该存储库使用命名空间/键模式来组织数据：
+
+For production deployments, use a persistent store implementation like `PostgresStore` instead of `InMemoryStore`. See the `memory documentation` for setup details.
+> 对于生产环境部署，请使用 PostgresStore 等持久化存储实现，而非 InMemoryStore。有关设置的详细信息，请参阅 内存文档。
+
+``` python
 from typing import Any
 from langgraph.store.memory import InMemoryStore
 from langchain.agents import create_agent
@@ -330,25 +330,25 @@ from langchain_openai import ChatOpenAI
 @tool
 def get_user_info(user_id: str, runtime: ToolRuntime) -> str:
     """Look up user info."""
-    store = runtime.store
-    user_info = store.get(("users",), user_id)
+    store = runtime.store                        # NOTE1-1
+    user_info = store.get(("users",), user_id)   # NOTE1-2
     return str(user_info.value) if user_info else "Unknown user"
 
 # Update memory
 @tool
 def save_user_info(user_id: str, user_info: dict[str, Any], runtime: ToolRuntime) -> str:
     """Save user info."""
-    store = runtime.store
-    store.put(("users",), user_id, user_info)
+    store = runtime.store                        # NOTE2-1
+    store.put(("users",), user_id, user_info)    # NOTE2-2
     return "Successfully saved user info."
 
 model = ChatOpenAI(model="gpt-4.1")
 
-store = InMemoryStore()
+store = InMemoryStore()                           # NOTE3
 agent = create_agent(
     model,
     tools=[get_user_info, save_user_info],
-    store=store
+    store=store                                   # NOTE4
 )
 
 # First session: save user info
@@ -364,14 +364,16 @@ agent.invoke({
 # - Name: Foo
 # - Age: 25
 # - Email: foo@langchain.dev
-See all 44 lines
-查看全部44行
-​
-Stream writer 流写入器
+```
+
+### Stream writer
 Stream real-time updates from tools during execution. This is useful for providing progress feedback to users during long-running operations.
-在执行过程中流式传输工具的实时更新。这对于在长时间运行的操作期间向用户提供进度反馈非常有用。
-Use runtime.stream_writer to emit custom updates:
-使用runtime.stream_writer来输出自定义更新：
+> 在执行过程中流式传输工具的实时更新。这对于在长时间运行的操作期间向用户提供进度反馈非常有用。
+
+Use `runtime.stream_writer` to emit custom updates:
+> 使用runtime.stream_writer来输出自定义更新：
+
+``` python
 from langchain.tools import tool, ToolRuntime
 
 @tool
@@ -384,50 +386,60 @@ def get_weather(city: str, runtime: ToolRuntime) -> str:
     writer(f"Acquired data for city: {city}")
 
     return f"It's always sunny in {city}!"
-If you use runtime.stream_writer inside your tool, the tool must be invoked within a LangGraph execution context. See Streaming for more details.
-如果在你的工具中使用 `runtime.stream_writer`，则该工具必须在 LangGraph 执行上下文中被调用。有关更多详细信息，请参阅 `流式处理`。
+```
+
+If you use `runtime.stream_writer` inside your tool, the tool must be invoked within a LangGraph execution context. See Streaming for more details.
+> 如果在你的工具中使用 `runtime.stream_writer`，则该工具必须在 LangGraph 执行上下文中被调用。有关更多详细信息，请参阅 `流式处理`。
 ​
-Execution info 执行信息
-Access thread ID, run ID, and retry state from within a tool via runtime.execution_info:
-通过 runtime.execution_info 从工具内部访问线程 ID、运行 ID 和重试状态：
+### Execution info
+Access thread ID, run ID, and retry state from within a tool via `runtime.execution_info`:
+> 通过 runtime.execution_info 从工具内部访问线程 ID、运行 ID 和重试状态：
+
+``` python
 from langchain.tools import tool, ToolRuntime
 
 @tool
 def log_execution_context(runtime: ToolRuntime) -> str:
     """Log execution identity information."""
-    info = runtime.execution_info
+    info = runtime.execution_info         # NOTE
     print(f"Thread: {info.thread_id}, Run: {info.run_id}")
     print(f"Attempt: {info.node_attempt}")
     return "done"
+```
 Requires deepagents>=0.5.0 (or langgraph>=1.1.5).
-需要 deepagents>=0.5.0（或 langgraph>=1.1.5）。
 ​
-Server info 服务器信息
-When your tool runs on LangGraph Server, access the assistant ID, graph ID, and authenticated user via runtime.server_info:
-当你的工具在 LangGraph Server 上运行时，可通过 runtime.server_info 访问助手 ID、图 ID 和已认证用户：
+### Server info
+When your tool runs on LangGraph Server, access the assistant ID, graph ID, and authenticated user via `runtime.server_info`:
+> 当你的工具在 LangGraph Server 上运行时，可通过 runtime.server_info 访问assistant ID、graph ID 和已认证用户：
+
+``` python
 from langchain.tools import tool, ToolRuntime
 
 @tool
 def get_assistant_scoped_data(runtime: ToolRuntime) -> str:
     """Fetch data scoped to the current assistant."""
-    server = runtime.server_info
+    server = runtime.server_info          # NOTE
     if server is not None:
         print(f"Assistant: {server.assistant_id}, Graph: {server.graph_id}")
         if server.user is not None:
             print(f"User: {server.user.identity}")
     return "done"
+```
+
 server_info is None when the tool is not running on LangGraph Server (e.g., during local development or testing).
-当工具未在 LangGraph 服务器上运行时（例如在本地开发或测试期间），server_info 为 None。
+> 当工具未在 LangGraph 服务器上运行时（例如在本地开发或测试期间），server_info 为 None。
+
 Requires deepagents>=0.5.0 (or langgraph>=1.1.5).
-需要 deepagents>=0.5.0（或 langgraph>=1.1.5）。
+
+## ToolNode
+`ToolNode` is a prebuilt node that executes tools **in LangGraph workflows**. It handles parallel tool execution, error handling, and state injection automatically.
+> ToolNode 是一个用于在 LangGraph 工作流中执行工具的预构建节点。它会自动处理并行工具执行、错误处理和状态注入。
+
+For custom workflows where you need fine-grained control over tool execution patterns, use `ToolNode` instead of create_agent. It’s the building block that powers agent tool execution.
+> 对于需要对工具执行模式进行精细控制的自定义工作流，请使用 ToolNode 而非 create_agent。它是驱动智能体工具执行的基础组件。
 ​
-ToolNode 工具节点
-ToolNode is a prebuilt node that executes tools in LangGraph workflows. It handles parallel tool execution, error handling, and state injection automatically.
-ToolNode 是一个用于在 LangGraph 工作流中执行工具的预构建节点。它会自动处理并行工具执行、错误处理和状态注入。
-For custom workflows where you need fine-grained control over tool execution patterns, use ToolNode instead of create_agent. It’s the building block that powers agent tool execution.
-对于需要对工具执行模式进行精细控制的自定义工作流，请使用 ToolNode 而非 create_agent。它是驱动智能体工具执行的基础组件。
-​
-Basic usage 基本用法
+### Basic usage
+``` python
 from langchain.tools import tool
 from langgraph.prebuilt import ToolNode
 from langgraph.graph import StateGraph, MessagesState, START, END
@@ -443,26 +455,30 @@ def calculator(expression: str) -> str:
     return str(eval(expression))
 
 # Create the ToolNode with your tools
-tool_node = ToolNode([search, calculator])
+tool_node = ToolNode([search, calculator])   # NOTE1
 
 # Use in a graph
 builder = StateGraph(MessagesState)
-builder.add_node("tools", tool_node)
+builder.add_node("tools", tool_node)         # NOTE2
 # ... add other nodes and edges
-​
-Tool return values 工具返回值
+```
+
+### Tool return values
 You can choose different return values for your tools:
-你可以为工具选择不同的返回值：
-Return a string for human-readable results.
-返回一个string以获取人类可读的结果。
-Return an object for structured results the model should parse.
-返回一个object，用于获取模型需要解析的结构化结果。
-Return a Command with optional message when you need to write to state.
-当你需要写入状态时，返回一个Command并附带可选消息。
+> 你可以为工具选择不同的返回值：
+
+- Return a `string` for human-readable results.
+> 返回一个string以获取人类可读的结果。
+- Return an `object` for structured results the model should parse.
+> 返回一个object，用于获取模型需要解析的结构化结果。
+- Return a `Command` with optional message when you need to write to state.
+> 当你需要写入状态时，返回一个Command并附带可选消息。
 ​
-Return a string 返回字符串
+#### Return a string
 Return a string when the tool should provide plain text for the model to read and use in its next response.
-当工具需要为模型提供纯文本供其阅读并在下一次回复中使用时，返回一个字符串。
+> 当工具需要为模型提供纯文本供其阅读并在下一次回复中使用时，返回一个字符串。
+
+``` python
 from langchain.tools import tool
 
 
@@ -470,19 +486,24 @@ from langchain.tools import tool
 def get_weather(city: str) -> str:
     """Get weather for a city."""
     return f"It is currently sunny in {city}."
-Behavior: 行为：
-The return value is converted to a ToolMessage.
-返回值会被转换为ToolMessage。
-The model sees that text and decides what to do next.
-模型会查看该文本并决定下一步的操作。
-No agent state fields are changed unless the model or another tool does so later.
-除非模型或其他工具后续进行修改，否则不会更改任何智能体状态字段。
+```
+
+**Behavior**:
+- The return value is converted to a `ToolMessage`.
+> 返回值会被转换为ToolMessage。
+- The model sees that text and decides what to do next.
+> 模型会查看该文本并决定下一步的操作。
+- No agent state fields are changed unless the model or another tool does so later.
+> 除非模型或其他工具后续进行修改，否则不会更改任何智能体状态字段。
+
 Use this when the result is naturally human-readable text.
-当结果是天然的人类可读文本时，使用此方式。
+> 当结果是天然的人类可读文本时，使用此方式。
 ​
-Return an object 返回一个对象
+#### Return an object
 Return an object (for example, a dict) when your tool produces structured data that the model should inspect.
-当你的工具生成模型需要检查的结构化数据时，返回一个对象（例如 dict）。
+> 当你的工具生成模型需要检查的结构化数据时，返回一个对象（例如 dict）。
+
+``` python
 from langchain.tools import tool
 
 
@@ -494,9 +515,11 @@ def get_weather_data(city: str) -> dict:
         "temperature_c": 22,
         "conditions": "sunny",
     }
-Behavior: 行为：
-The object is serialized and sent back as tool output.
-该对象会被序列化并作为工具输出返回。
+```
+
+**Behavior**:
+- The object is serialized and sent back as tool output.
+> 该对象会被序列化并作为工具输出返回。
 The model can read specific fields and reason over them.
 模型可以读取特定字段并对其进行推理。
 Like string returns, this does not directly update graph state.
