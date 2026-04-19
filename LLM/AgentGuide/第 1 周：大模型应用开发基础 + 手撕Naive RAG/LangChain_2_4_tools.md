@@ -496,7 +496,7 @@ def get_weather(city: str) -> str:
 - No agent state fields are changed unless the model or another tool does so later.
 > 除非模型或其他工具后续进行修改，否则不会更改任何智能体状态字段。
 
-Use this when the result is naturally human-readable text.
+Use this when the result is **naturally human-readable** text.
 > 当结果是天然的人类可读文本时，使用此方式。
 ​
 #### Return an object
@@ -518,18 +518,21 @@ def get_weather_data(city: str) -> dict:
 ```
 
 **Behavior**:
-- The object is serialized and sent back as tool output.
+- The object is **serialized** and sent back as tool output.
 > 该对象会被序列化并作为工具输出返回。
-The model can read specific fields and reason over them.
-模型可以读取特定字段并对其进行推理。
-Like string returns, this does not directly update graph state.
-与字符串返回一样，这不会直接更新图状态。
-Use this when downstream reasoning benefits from explicit fields instead of free-form text.
-当下游推理得益于明确的字段而非自由格式的文本时，请使用此方式。
+- The model can read specific fields and reason over them.
+> 模型可以读取特定字段并对其进行推理。
+- Like string returns, this does not directly update graph state.
+> 与字符串返回一样，这不会直接更新图状态。
+
+Use this when **downstream reasoning benefits** from explicit fields instead of free-form text.
+> 当下游推理得益于明确的字段而非自由格式的文本时，请使用此方式。
 ​
-Return a Command 返回一个命令
-Return a Command when the tool needs to update graph state (for example, setting user preferences or app state). You can return a Command with or without including a ToolMessage. If the model needs to see that the tool succeeded (for example, to confirm a preference change), include a ToolMessage in the update, using runtime.tool_call_id for the tool_call_id parameter.
-当工具需要更新图表状态（例如，设置用户首选项或应用程序状态）时，返回一个Command。你可以返回包含ToolMessage或不包含ToolMessage的Command。如果模型需要确认工具执行成功（例如，确认首选项已更改），请在更新中包含ToolMessage，并将runtime.tool_call_id用作tool_call_id参数。
+#### Return a Command
+Return a `Command` when the tool needs to update graph state (for example, setting user preferences or app state). You can return a `Command` with or without including a `ToolMessage`. If the model needs to see that the tool succeeded (for example, to confirm a preference change), include a `ToolMessage` in the update, using `runtime.tool_call_id` for the `tool_call_id` parameter.
+> 当工具需要更新图表状态（例如，设置用户首选项或应用程序状态）时，返回一个Command。你可以返回包含或不包含ToolMessage的Command。如果模型需要确认工具执行成功（例如，确认首选项已更改），请在更新中包含ToolMessage，并将runtime.tool_call_id用作tool_call_id参数。
+
+``` python
 from langchain.messages import ToolMessage
 from langchain.tools import ToolRuntime, tool
 from langgraph.types import Command
@@ -538,30 +541,35 @@ from langgraph.types import Command
 @tool
 def set_language(language: str, runtime: ToolRuntime) -> Command:
     """Set the preferred response language."""
-    return Command(
+    return Command(  # NOTE1
         update={
             "preferred_language": language,
             "messages": [
                 ToolMessage(
                     content=f"Language set to {language}.",
-                    tool_call_id=runtime.tool_call_id,
+                    tool_call_id=runtime.tool_call_id,  # NOTE2
                 )
             ],
         }
     )
-Behavior: 行为：
-The command updates state using update.
-该命令使用update更新状态。
-Updated state is available to subsequent steps in the same run.
-更新后的状态在同一次运行的后续步骤中均可用。
-Use reducers for fields that may be updated by parallel tool calls.
-为可能被并行工具调用更新的字段使用reducer。
-Use this when the tool is not just returning data, but also mutating agent state.
-当工具不仅返回数据，还会修改智能体状态时，请使用此方法。
+```
+
+**Behavior**:
+- The command updates state using `update`.
+> 该命令使用update更新状态。
+- Updated state is available to subsequent steps in the same run.
+> 更新后的状态在同一次运行的后续步骤中均可用。
+- Use reducers for fields that may be updated by parallel tool calls.
+> 为可能被并行工具调用更新的字段使用reducer。
+
+Use this when the tool is not just returning data, but also **mutating agent state**.
+> 当工具不仅返回数据，还会修改智能体状态时，请使用此方法。
 ​
-Error handling 错误处理
-Configure how tool errors are handled. See the ToolNode API reference for all options.
-配置工具错误的处理方式。有关所有选项，请参阅 ToolNode API 参考。
+### Error handling
+Configure how tool errors are handled. See the `ToolNode` API reference for all options.
+> 配置工具错误的处理方式。有关所有选项，请参阅 ToolNode API 参考。
+
+``` python
 from langgraph.prebuilt import ToolNode
 
 # Default: catch invocation errors, re-raise execution errors
@@ -581,10 +589,13 @@ tool_node = ToolNode(tools, handle_tool_errors=handle_error)
 
 # Only catch specific exception types
 tool_node = ToolNode(tools, handle_tool_errors=(ValueError, TypeError))
-​
-Route with tools_condition 使用工具条件进行路由
-Use tools_condition for conditional routing based on whether the LLM made tool calls:
-使用tools_condition，根据大模型是否调用了工具进行条件路由：
+```
+
+### Route with tools_condition
+Use `tools_condition` for conditional routing based on whether the LLM made tool calls:
+> 使用tools_condition，根据大模型是否调用了工具进行条件路由：
+
+``` python
 from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.graph import StateGraph, MessagesState, START, END
 
@@ -593,14 +604,17 @@ builder.add_node("llm", call_llm)
 builder.add_node("tools", ToolNode(tools))
 
 builder.add_edge(START, "llm")
-builder.add_conditional_edges("llm", tools_condition)  # Routes to "tools" or END
+builder.add_conditional_edges("llm", tools_condition)  # NOTE: Routes to "tools" or END
 builder.add_edge("tools", "llm")
 
 graph = builder.compile()
-​
-State injection 状态注入
-Tools can access the current graph state through ToolRuntime:
-工具可通过ToolRuntime访问当前的图状态：
+```
+
+### State injection 状态注入
+Tools can access the current graph state through `ToolRuntime`:
+> 工具可通过ToolRuntime访问当前的图状态：
+
+``` python
 from langchain.tools import tool, ToolRuntime
 from langgraph.prebuilt import ToolNode
 
@@ -611,17 +625,23 @@ def get_message_count(runtime: ToolRuntime) -> str:
     return f"There are {len(messages)} messages."
 
 tool_node = ToolNode([get_message_count])
+```
+
 For more details on accessing state, context, and long-term memory from tools, see Access context.
-有关如何从工具访问状态、上下文和长期记忆的更多详细信息，请参阅 访问上下文。
+> 有关如何从工具访问状态、上下文和长期记忆的更多详细信息，请参阅 访问上下文。
 ​
-Prebuilt tools 预构建工具
-LangChain provides a large collection of prebuilt tools and toolkits for common tasks like web search, code interpretation, database access, and more. These ready-to-use tools can be directly integrated into your agents without writing custom code.
-LangChain 提供了大量针对常见任务的预构建工具和工具包，例如网络搜索、代码解释、数据库访问等。这些即用型工具可直接集成到你的智能体中，无需编写自定义代码。
-See the tools and toolkits integration page for a complete list of available tools organized by category.
-请查看工具和工具包集成页面，获取按类别整理的可用工具完整列表。
+## Prebuilt tools
+LangChain provides a large collection of **prebuilt tools and toolkits** for common tasks like web search, code interpretation, database access, and more. These ready-to-use tools can be directly integrated into your agents without writing custom code.
+> LangChain 提供了大量针对常见任务的预构建工具和工具包，例如网络搜索、代码解释、数据库访问等。这些即用型工具可直接集成到你的智能体中，无需编写自定义代码。
+
+See the [tools and toolkits](https://docs.langchain.com/oss/python/integrations/tools) integration page for a complete list of available tools organized by category.
+> 请查看工具和工具包集成页面，获取按类别整理的可用工具完整列表。
 ​
-Server-side tool use 服务端工具使用
+## Server-side tool use
 Some chat models feature built-in tools that are executed server-side by the model provider. These include capabilities like web search and code interpreters that don’t require you to define or host the tool logic.
-部分聊天模型配备了由模型提供商在服务器端执行的内置工具。这些工具包括网页搜索、代码解释器等功能，无需你定义或托管工具逻辑。
+> 部分聊天模型配备了由模型提供商在服务器端执行的内置工具。这些工具包括网页搜索、代码解释器等功能，无需你定义或托管工具逻辑。
+
 Refer to the individual chat model integration pages and the tool calling documentation for details on enabling and using these built-in tools.
-有关启用和使用这些内置工具的详细信息，请参阅单独的聊天模型集成页面和工具调用文档。
+> 有关启用和使用这些内置工具的详细信息，请参阅单独的聊天模型集成页面和工具调用文档。
+
+todo: 我如何用？主动用/被动用
