@@ -35,4 +35,13 @@ Frontier models are really expensive:
 - 2025: xAI builds cluster with **230K GPUs** for training Grok.
 
 There are no public details on how frontier models are built.
-From the GPT-4 technical report [OpenAI+ 2023]:
+
+From the GPT-4 technical report [OpenAI+ 2023]:出于竞争环境和安全考率
+<img width="780" height="298" alt="image" src="../pic/" />
+
+Frontier models are out of reach for us.
+> 前沿模型对我们而言遥不可及。
+
+We could build small language models (<1B parameters), but thismight not be representative models.
+> 我们可以构建小型语言模型（参数小于10亿），但这可能不具备模型代表性。
+
