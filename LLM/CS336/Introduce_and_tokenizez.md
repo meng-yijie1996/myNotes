@@ -6,4 +6,15 @@
 - More coverage of modern LM ingredients (mixture of experts, long-context, agents)
 > 更多讲解现代大语言模型的核心组件（混合专家模型、长上下文、智能体）
 
-## 
+## why did we make this course?
+Problem: researchers are becoming disconnected from the underlying technology.
+- 2016: researchers implemented and trained their own models.
+- 2018: researchers downloaded models (e.g., BERT) and fine-tuned thhem
+- Today: researchers prompt API models (e.g., GPT/Claude/Gemini).
+
+Moving up levels of abstraction boosts productivity, but
+> 提升抽象层级可以提高生产力，但是
+- These abstractions are leaky (in contrast to programming languages or operating systems).
+> 这些抽象是有漏洞的（与编程语言或操作系统形成对比）。如：想做某件事，但就是做不到，而且没有别的办法。仅仅通过prompt使用一个模型，会极大限制使用的可能性。
+- There is still fundamental research to be done that requirestearing up the stack
+> 仍有部分基础研究有待开展，这需要彻底重构整个技术栈
