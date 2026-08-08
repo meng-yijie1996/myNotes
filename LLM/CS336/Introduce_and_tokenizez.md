@@ -37,11 +37,25 @@ Frontier models are really expensive:
 There are no public details on how frontier models are built.
 
 From the GPT-4 technical report [OpenAI+ 2023]:出于竞争环境和安全考率
-<img width="780" height="298" alt="image" src="../pic/" />
+<img width="780" height="298" alt="image" src="./pic/OpenAI+2013.png" />
 
 Frontier models are out of reach for us.
 > 前沿模型对我们而言遥不可及。
 
 We could build small language models (<1B parameters), but thismight not be representative models.
-> 我们可以构建小型语言模型（参数小于10亿），但这可能不具备模型代表性。
+> 我们可以构建小型语言模型（参数小于10亿），但这可能不具备模型代表性，不能代表真正的前沿模型。
+
+Example 1: fraction of FLOPs spent in attention versus MlP changes with scale.
+> 示例1：注意力机制与多层感知机（MLP）所占浮点运算量（FLOPs）的占比随模型规模发生变化。
+
+<src="./pic/stephen_roller.png" />
+
+小规模的模型中，MLP层中flops占比是44%，扩展到175B时，会上升到80%。导致了：在大模型中优化什么，以及什么重要，对于小模型并不适用。或者在小模型中对注意力的优化，可能不会在大模型上获得同样的收益。
+
+
+
+
+
+
+
 
