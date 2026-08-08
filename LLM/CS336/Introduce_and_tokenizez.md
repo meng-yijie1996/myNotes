@@ -48,12 +48,33 @@ We could build small language models (<1B parameters), but thismight not be repr
 Example 1: fraction of FLOPs spent in attention versus MlP changes with scale.
 > 示例1：注意力机制与多层感知机（MLP）所占浮点运算量（FLOPs）的占比随模型规模发生变化。
 
-<src="./pic/stephen_roller.png" />
+<img src="./pic/stephen_roller.png" />
 
 小规模的模型中，MLP层中flops占比是44%，扩展到175B时，会上升到80%。导致了：在大模型中优化什么，以及什么重要，对于小模型并不适用。或者在小模型中对注意力的优化，可能不会在大模型上获得同样的收益。
 
+Example 2: emergence of behavior with scale
+> 规模带来的行为涌现
 
+<img src="./pic/example2.png" />
 
+只有当达到临界规模时，才会看到改进。在小模型上工作时，看不到某些现象
+
+Zero-Shot学习：在训练集中没有某个类别的样本，但在测试集中出现了这个类别。我们需要模型在训练过程中，即使没有接触过这个类别的样本，但仍然可以通过对这个类别的描述，对没见过的类别进行分类。
+
+One-Shot学习：可以理解为用一条数据fine-tune模型。例如，在人脸识别场景里，你只提供一张照片，门禁就能认识各个角度的你。属于Few-Shot学习的特例。
+
+Few-Shot学习：在模型训练过程中，如果每个类别只有少量样本（一个或几个），研究人员希望机器学习模型在学习了一定类别的大量数据后，对于新的类别，只需要少量的样本就能快速学习。
+
+## What can we learn in this class that transfers to frontier model
+> 我们能从这门课中学到哪些可迁移应用到前沿模型的知识
+
+There are three types of knowledge:
+- Mechanics: how things work (what a Transformer is, how model parallelism works)
+> 机制原理：事物如何运作（什么是Transformer，模型并行如何工作）
+- Mindset: squeezing the most out of the hardware,taking scaling seriously
+> 思维模式：充分挖掘硬件的全部性能，高度重视规模扩展
+- Intuitions: which data and modeling decisions yield good accuraacy
+> 直觉认知：哪些数据与建模决策能够带来良好的准确率
 
 
 
