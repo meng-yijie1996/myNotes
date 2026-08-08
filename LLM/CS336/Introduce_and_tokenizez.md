@@ -72,10 +72,18 @@ There are three types of knowledge:
 - Mechanics: how things work (what a Transformer is, how model parallelism works)
 > 机制原理：事物如何运作（什么是Transformer，模型并行如何工作）
 - Mindset: squeezing the most out of the hardware,taking scaling seriously
-> 思维模式：充分挖掘硬件的全部性能，高度重视规模扩展
+> 思维模式：充分挖掘硬件的全部性能，高度重视规模扩展。即：如何着手构建一个语言模型？
 - Intuitions: which data and modeling decisions yield good accuraacy
 > 直觉认知：哪些数据与建模决策能够带来良好的准确率
 
+We can teach mechanics and mindset (these do transfer).
+> 我们可以教授操作方法与思维模式（这些是确实可以迁移的）。
+We can only partially teach intuitions (do not necessarily transfer across scales).
+> 我们只能部分传授直觉（这类直觉不一定能跨规模迁移）。
+
+## Intuitions?
+Some design decisions are simply not (yet) justifiable and just come from experimentation
+Example: Noam Shazeer paper that introduced SwiGLU [Shazeeer 2020
 
 
 
