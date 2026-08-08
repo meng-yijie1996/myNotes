@@ -18,3 +18,21 @@ Moving up levels of abstraction boosts productivity, but
 > 这些抽象是有漏洞的（与编程语言或操作系统形成对比）。如：想做某件事，但就是做不到，而且没有别的办法。仅仅通过prompt使用一个模型，会极大限制使用的可能性。
 - There is still fundamental research to be done that requirestearing up the stack
 > 仍有部分基础研究有待开展，这需要彻底重构整个技术栈
+
+Full understanding of this technology is necessary for fundameental research
+> 开展基础研究需要充分理解这项技术。
+
+Philosophy of this course: understanding via building.
+> 本课程的理念：通过实践构建来理解。
+
+But there's one small problem...
+
+The industrialization of language models
+
+Frontier models are really expensive:
+
+- 2023: GPT-4 supposedly cost **$100M** to train.
+- 2025: xAI builds cluster with **230K GPUs** for training Grok.
+
+There are no public details on how frontier models are built.
+From the GPT-4 technical report [OpenAI+ 2023]:
