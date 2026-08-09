@@ -83,7 +83,30 @@ We can only partially teach intuitions (do not necessarily transfer across scale
 
 ## Intuitions?
 Some design decisions are simply not (yet) justifiable and just come from experimentation
-Example: Noam Shazeer paper that introduced SwiGLU [Shazeeer 2020
+> 有些设计决策目前（尚且）无法给出合理的理论依据，纯粹来源于实验探索。
+
+Example: Noam Shazeer paper that introduced SwiGLU [Shazeeer 2020]
+
+<img src="./pic/introduce_swiglu.png" />
+
+## The bitter lesson
+> 深刻教训
+
+Wrong interpretation: scale is all that matters, algorithms don't matter
+> 错误解读：规模就是全部，算法无关紧要
+
+Right interpretation: algorithms that scale are what matter.
+> 正确解读：具备可扩展性的算法才是关键。
+
+accuracy = efficiency x resources
+> 准确率 = 效率 × 资源
+
+In fact, efficiency is way more important at larger scales (cant afford to be wasteful).
+> 实际上，在更大规模下，效率要重要得多（承担不起资源浪费的代价）。
+
+[Hernandez+ 2020] showed 44x algorithmic efficiency on ImaageNet between 2012 and 2019.
+> [Hernandez+ 2020]的研究表明，2012至2019年间，ImageNet上的算法效率提升了44倍。
+
 
 
 
