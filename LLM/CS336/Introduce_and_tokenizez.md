@@ -217,14 +217,37 @@ Starting point: original Transformer [Vaswani+ 2017]
 <img src="./pic/transformer-architecture.png" />
 
 Refinements:
-- Activation functions: ReLU, SwiGLU , shazeer_2020
-- Positional encodings: sinusoidal, RoPE , rope_2021
-- Normalization: LayerNorm, RMSNorm, QK norm, pre-norm versus post-norm , layernorm_2016, rms_norm_2019, qk_norm_2023, pre_post_norm_2020
-- Attention: full, sparse/local attention, group-query attention (GQA), multi-head latent attention (MLA) , sparse_transformer_2019), gqa_2023), mla_2024)
-- Recurrence/state-space models/linear attention: Mamba, Gated DeltaNet , linear_attention_2020), mamba_2_2024), gdn_2024), mamba_3_2026)
-- MLP: dense, mixture of experts , moe_2017), switch_transformers_2021)
+- Activation functions: ReLU, SwiGLU [shazeer_2020]
+> 激活函数
+- Positional encodings: sinusoidal, RoPE[rope_2021]
+> 位置编码
+- Normalization: LayerNorm, RMSNorm, QK norm, pre-norm versus post-norm [layernorm_2016] [rms_norm_2019] [qk_norm_2023] [pre_post_norm_2020]
+> 如何在不同的层进行归一化
+- Attention: full, sparse/local attention, group-query attention (GQA), multi-head latent attention (MLA) [sparse_transformer_2019] [gqa_2023] [mla_2024]
+> 除了做full attention，还有很多方法来减少attention计算，因为attention是n的平方（n：序列长度）
+- Recurrence/state-space models/linear attention: Mamba, Gated DeltaNet [linear_attention_2020] [mamba_2_2024] [gdn_2024] [mamba_3_2026]
+> 通常，模型与attention的某种混合，效果会很好
+- MLP: dense, mixture of experts [moe_2017] [switch_transformers_2021]
+> 在transformer的MLP中，原始的transformer只是一个dense（稠密） MLP，现在MoE已经成为transformer的主导范式
 - Shape (hidden dimension, depth, number of heads, number of experts)
+> transformer的形状：多少层、多少个head、隐藏维度和MoE。
 
+#### Training
+How do you set the parameters of the model?
+- Loss function (e.g., multi-token prediction)
+> 
+- Optimizer (e.g., AdamW, SOAP, Muon)
+> 
+- Initialization scale (e.g., Xavier init, muP)
+> 
+- Learning rate schedule (e.g., cosine, WSD)
+> 
+- Regularization (e.g., dropout, weight decay)
+> 
+- Batch size (e.g., critical batch size)
+> 
+- MoE specific: load balancing (e.g., aux-free)
+> 
 
 
 
