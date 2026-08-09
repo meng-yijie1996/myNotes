@@ -235,22 +235,36 @@ Refinements:
 #### Training
 How do you set the parameters of the model?
 - Loss function (e.g., multi-token prediction)
-> 
+> 默认是next token prediction（预测），但人们发现预测多余一个token似乎有助于改进模型。
 - Optimizer (e.g., AdamW, SOAP, Muon)
-> 
+> 过去使用AdamW，现在用Muon的越来越多，如Kimi K2
 - Initialization scale (e.g., Xavier init, muP)
-> 
+> 初始化：对训练更大模型稳定性的能力有巨大影响
 - Learning rate schedule (e.g., cosine, WSD)
-> 
+> 学习率调度
 - Regularization (e.g., dropout, weight decay)
-> 
+> 正则化
 - Batch size (e.g., critical batch size)
-> 
+> 批量大小
 - MoE specific: load balancing (e.g., aux-free)
-> 
+> MoE特定的东西
 
+一方面，超参数可以尝试不同选项
 
+另一方面，事实证明，谨慎地，以原则性方式设置超参数，将决定一次训练是失败爆炸、毫无用处，还是能达到最先进水平。
 
+#### Assignment 1 (basics)
+    link(title="GitHub", url="https://github.com/stanford-cs336/assignment1-basics, link(title="PDF", url="https://github.com/stanford-cs336/assignment1-basics/blob/main/cs336_spring2026_assignment1_basics.pdf
+- Implement BPE tokenizer
+- Implement Transformer, cross-entropy loss, AdamW optimizer, training loop
+- Do resource accounting
+- Train on TinyStories and OpenWebText
+- Leaderboard: minimize OpenWebText perplexity given 45 minutes on a B200 , link(title="last year's leaderboard", url="https://github.com/stanford-cs336/spring2025-assignment1-basics-leaderboard
+
+High-level principle: everything is about balancing the following:
+- Expressivity (can represent complex dependencies in the data)
+- Stability (keep parameter and gradient norms in goldilocks zone)
+- Efficiency (runs fast on hardware, both training and inference)
 
 
 
