@@ -182,9 +182,57 @@ Components: tokenization, model architecture, training
 
 #### Tokenization
 What are the atoms that the model operates on?
-> 模型处理的原子是什么？
+> 模型处理的基本单元（原子）是什么？
 
 Formally: a tokenizer converts between raw inputs (bytes) and sequences of integers (tokens)
-> 严格来说：分词器实现原始输入（字节）与整数序列（词元）之间的转换
+> 严格来说：分词器实现原始输入（字节）与整数序列（词元）之间的转换。即：这些整数就代表token。概念上，即是对文本的切分。
 
-<img src="./tokenization" />
+<img src="./pic/tokenization.png" />
+
+Popular tokenizer: Byte-Pair Encoding (BPE) [Sennrich+ 2015]
+> 常用分词器：字节对编码（BPE）
+
+Intuition: break input into frequently-occuring chunks
+> 核心思路：将输入切分为频繁出现的片段
+
+Efficiency lens
+> 效率视角看，tokenization是很好的
+
+Reduce context length (1000 bytes - ~250 tokens)
+> 降低上下文长度（1000字节 → 约250个token）：将一个长的序列（原始字节流）减少为更少数量的token。
+
+Adaptive computation (more modeling capacity on interesting partsof input)
+> 自适应计算（对输入中**关键部分**分配更多建模能力）：某些地方也许有很多字节，但实际被压缩成了一个token，而输入中更少或者更关键的地方被保留为多个token。
+
+The dream: tokenizer-free model architectures, which operatedirectly on bytes
+> 愿景：无分词器模型架构，直接基于字节进行运算
+
+These are promising, but have not yet been scaled up to thhe frontier
+> 这些方案前景可观，但尚未扩大规模应用至前沿领域
+
+#### Model architecture
+Starting point: original Transformer [Vaswani+ 2017]
+> 起点：原始Transformer
+
+<img src="./pic/transformer-architecture.png" />
+
+Refinements:
+- Activation functions: ReLU, SwiGLU , shazeer_2020
+- Positional encodings: sinusoidal, RoPE , rope_2021
+- Normalization: LayerNorm, RMSNorm, QK norm, pre-norm versus post-norm , layernorm_2016, rms_norm_2019, qk_norm_2023, pre_post_norm_2020
+- Attention: full, sparse/local attention, group-query attention (GQA), multi-head latent attention (MLA) , sparse_transformer_2019), gqa_2023), mla_2024)
+- Recurrence/state-space models/linear attention: Mamba, Gated DeltaNet , linear_attention_2020), mamba_2_2024), gdn_2024), mamba_3_2026)
+- MLP: dense, mixture of experts , moe_2017), switch_transformers_2021)
+- Shape (hidden dimension, depth, number of heads, number of experts)
+
+
+
+
+
+
+
+
+
+
+
+
