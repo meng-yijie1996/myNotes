@@ -107,7 +107,84 @@ In fact, efficiency is way more important at larger scales (cant afford to be wa
 [Hernandez+ 2020] showed 44x algorithmic efficiency on ImaageNet between 2012 and 2019.
 > [Hernandez+ 2020]的研究表明，2012至2019年间，ImageNet上的算法效率提升了44倍。
 
+Framing: what is the best model one can build given a certaincompute and data budget?
+> 问题界定：在给定计算与数据预算的前提下，人们能够构建出的最优模型是什么？
 
+In other words, maximize efficiency!
 
+## Neural ingredients (2010s)
+- Long-Short Term Memory (LSTM) [Hochreiter+ 1997]
+- First neural language model [Bengio+ 2003]
+- Sequence-to-sequence modeling (for machine translation) [Siutskever+ 2014]: 可以把句子压缩成一个向量
+- Adam optimizer [Kingma+ 2014]
+- Attention mechanism (for machine translation) [Bahdanau+ 2014
+- Transformer architecture (for machine translation) [Vaswani+ 2017Nh
+- Mixture of experts [Shazeer+2017]
+- Model parallelism
 
+## Embracing scaling
+- OpenAI's GPT-2 (1.5B): fluent text, first signs of zero-shot [Radfod+ 2019
+- Scaling laws: provide hope / predictability for scaling [Kaplan+ 2020]
+- OpenAl's GPT-3 (175B): in-context learning [Brown+ 2020]
+- Google's PaLM (540B): massive scale, undertrained (Chowdhery+ 2022]
+- DeepMind's Chinchilla (70B): compute-optimal scaling laws [Hoffmann+ 2022]
 
+## Open models
+Early attempts (attempts to replicate GPT-3):
+
+- EleutherAl's open datasets (The Pile) and models (GPT-J)[Gao+ 2020][Wang+ 2021]
+- Meta's OPT (175B): GPT-3 replication, lots of hardware issues[Zhang+ 2022]
+- Hugging Face / BigScience's BLOOM (176B): focused on data sourrcing [Workshop+ 2022]
+
+Credible open-weight models (weights + paper):
+- Meta's Llama models [Touvron+ 2023][Touvron+ 2023][Grattafiori+ 2024
+- Mistral's models [Jiang+ 2023][Jiang+ 2024]
+- DeepSeek's models [DeepSeek-Al+ 2024][DeepSeek-Al+ 2024][DeepSeek-Al+ 2024][DeepSeek-Al+ 2025]
+- Alibaba's Qwen models [Qwen+ 2024][Yang+ 2025]
+- Moonshot's Kimi models [Kimi Team 2025][Kimi Team 2026]
+- Z.ai's GLM models [GLM-4.5 Team 2025][GLM-5-Team 2026]
+- Minimax's models [MiniMax M2.5]
+- Xiaomi's MIMO models [Xiaomi MIMO v2]
+
+These models are approaching closed models (GPT, Claude, Gennini, etc.).
+
+Open-source models (weights + paper + code + data), 提供更多细节，便于了解模型:
+- Al2's Olmo models [Groeneveld+ 2024][Team OLMo 2024][Tearm Olmo 2025]
+- NVIDIA's Nemotron models [Parmar+ 2024][NVIDIA+ 2025]
+- Marin's models (open development) [Marin 8B retro][Marin 32B retr70]
+
+Openness is important for trust and innovation [Kapoor+22024]. Ideas from open models enable us to teach CS336.
+> 开放性对于信任与创新至关重要［Kapoor+22024]。开源模型带来的思路让我们得以开展CS336课程教学。
+
+## What is a language model?
+- 2018 (BERT): something you fine-tune
+- 2020 (GPT-3): something you prompt
+- 2022 (ChatGPT): something you talk to [example conversaticbn]
+- 2026 (agents): something that acts autonomously [example trace]
+
+The fundamentals are the same (attention, kernels, optimhization)
+> 基础原理是相同的（注意力机制、内核、优化，如梯度和随机）
+
+The specs are different (longer context, inference efficiency matterseven more).
+> 技术规格有所不同（更长的上下文窗口，推理效率变得更为重要）。
+
+## course syllabus【大纲】
+- basics：Assignment 1: tokenization,model architecture, training
+- systems：Assignment 2: kernels,parallelism, inference
+- scaling laws：Assignment 3: scaling laws
+- data：Assignment 4: evaluation, curation, transformation, filtering,dedupl
+- alignment：Assignment 5: RLHF, RL algorithms,RL systems
+
+### basics
+Goal: be able to train a basic language model
+
+Components: tokenization, model architecture, training
+
+#### Tokenization
+What are the atoms that the model operates on?
+> 模型处理的原子是什么？
+
+Formally: a tokenizer converts between raw inputs (bytes) and sequences of integers (tokens)
+> 严格来说：分词器实现原始输入（字节）与整数序列（词元）之间的转换
+
+<img src="./tokenization" />
